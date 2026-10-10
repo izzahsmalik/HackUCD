@@ -6,6 +6,7 @@ import { AppModule } from './../src/app.module.js';
 import { LlmModel } from './../src/llm/llm.model.js';
 import { IngestService } from '../src/ingest/ingest.service.js';
 import { IngestRunSummary } from '../src/ingest/ingest-result.js';
+import { QueryService } from '../src/query/query.service.js';
 
 function makeSummary(): IngestRunSummary {
   return {
@@ -36,6 +37,14 @@ function jsonResult(res: { text: string }): Record<string, unknown> {
   return JSON.parse(dataLine!.slice('data: '.length)).result;
 }
 
+function makeQueryResponse() {
+  return {
+    answer: 'You spent $10.50.',
+    plan: { entity: 'transactions', aggregation: 'sum' },
+    data: { entity: 'transactions', rowCount: 2, totals: { count: 2 } },
+  };
+}
+
 describe('Ingest upload and MCP (e2e)', () => {
   let app: INestApplication<App>;
 
@@ -53,6 +62,8 @@ describe('Ingest upload and MCP (e2e)', () => {
         run: vi.fn().mockResolvedValue(makeSummary()),
         ingestCsv: vi.fn().mockResolvedValue(makeSummary()),
       })
+      .overrideProvider(QueryService)
+      .useValue({ ask: vi.fn().mockResolvedValue(makeQueryResponse()) })
       .compile();
 
     app = moduleFixture.createNestApplication();
@@ -101,7 +112,7 @@ describe('Ingest upload and MCP (e2e)', () => {
       });
   });
 
-  it('POST /mcp lists the ingest_csv tool', () => {
+  it('POST /mcp lists the ingest_csv and ask_financial_question tools', () => {
     return request(app.getHttpServer())
       .post('/mcp')
       .set('Accept', 'application/json, text/event-stream')
@@ -112,6 +123,32 @@ describe('Ingest upload and MCP (e2e)', () => {
           (t: { name: string }) => t.name,
         );
         expect(names).toContain('ingest_csv');
+        expect(names).toContain('ask_financial_question');
+      });
+  });
+
+  it('POST /mcp answers a financial question through the query tool', () => {
+    return request(app.getHttpServer())
+      .post('/mcp')
+      .set('Accept', 'application/json, text/event-stream')
+      .send({
+        jsonrpc: '2.0',
+        id: 3,
+        method: 'tools/call',
+        params: {
+          name: 'ask_financial_question',
+          arguments: { question: 'How much did I spend?' },
+        },
+      })
+      .expect(200)
+      .expect((res) => {
+        // jsonResult() already unwraps the JSON-RPC envelope: for tools/call it
+        // IS the tool result ({ content: [...] }).
+        const toolResult = jsonResult(res) as {
+          content: { type: string; text: string }[];
+        };
+        const response = JSON.parse(toolResult.content[0]!.text);
+        expect(response.answer).toBe('You spent $10.50.');
       });
   });
 
