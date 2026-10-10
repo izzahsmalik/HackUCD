@@ -48,7 +48,7 @@ describe('StripeClient', () => {
         vi.mocked(fetchImpl).mock.calls[0]![1]!.body as string,
       );
       expect(Object.fromEntries(body)).toMatchObject({
-        mode: 'payment',
+        mode: 'subscription',
         'line_items[0][price]': 'price_123',
         'line_items[0][quantity]': '1',
         success_url: 'https://app.test/success',

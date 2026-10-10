@@ -11,10 +11,8 @@ import { BadRequestException, Injectable, ServiceUnavailableException, } from '@
 import { PremiumService } from './premium.service.js';
 import { DEFAULT_CANCEL_URL, DEFAULT_SUCCESS_URL, } from './payments.constants.js';
 import { StripeClient, StripeConfigurationError, StripeSignatureError } from './stripe.client.js';
-const PREMIUM_EVENT_TYPES = new Set([
-    'checkout.session.completed',
-    'checkout.session.async_payment_succeeded',
-]);
+const PREMIUM_ENABLED_EVENT_TYPES = new Set(['invoice.paid']);
+const PREMIUM_DISABLED_EVENT_TYPES = new Set(['customer.subscription.deleted']);
 let PaymentsService = class PaymentsService {
     stripeClient;
     premiumService;
@@ -56,8 +54,11 @@ let PaymentsService = class PaymentsService {
             }
             throw error;
         }
-        if (PREMIUM_EVENT_TYPES.has(event.type)) {
+        if (PREMIUM_ENABLED_EVENT_TYPES.has(event.type)) {
             await this.premiumService.setIsPremium(true);
+        }
+        else if (PREMIUM_DISABLED_EVENT_TYPES.has(event.type)) {
+            await this.premiumService.setIsPremium(false);
         }
         return { received: true };
     }

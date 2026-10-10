@@ -79,7 +79,8 @@ export class StripeClient {
     }
 
     const body = new URLSearchParams({
-      mode: 'payment',
+      // Premium is a recurring plan; STRIPE_PRICE_ID must be a recurring price.
+      mode: 'subscription',
       'line_items[0][price]': input.priceId,
       'line_items[0][quantity]': '1',
       success_url: input.successUrl,

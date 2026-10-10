@@ -11,11 +11,12 @@ import {
 import { StripeClient, StripeConfigurationError, StripeSignatureError } from './stripe.client.js';
 import type { CheckoutSessionDto } from './dto/payments.dto.js';
 
-/** Webhook event types that enable premium; one-time checkout completes here. */
-const PREMIUM_EVENT_TYPES = new Set([
-  'checkout.session.completed',
-  'checkout.session.async_payment_succeeded',
-]);
+/**
+ * Subscription lifecycle events that drive the premium flag: the first paid
+ * invoice (and every renewal) unlocks Pro; subscription deletion re-locks it.
+ */
+const PREMIUM_ENABLED_EVENT_TYPES = new Set(['invoice.paid']);
+const PREMIUM_DISABLED_EVENT_TYPES = new Set(['customer.subscription.deleted']);
 
 @Injectable()
 export class PaymentsService {
@@ -51,7 +52,8 @@ export class PaymentsService {
   }
 
   /**
-   * Verifies the webhook signature and enables premium on a completed payment.
+   * Verifies the webhook signature and applies the subscription lifecycle to
+   * the premium flag (invoice.paid unlocks, subscription.deleted re-locks).
    * Always resolves with { received: true } so Stripe does not retry valid
    * events; unknown event types are ignored.
    */
@@ -76,8 +78,10 @@ export class PaymentsService {
       }
       throw error;
     }
-    if (PREMIUM_EVENT_TYPES.has(event.type)) {
+    if (PREMIUM_ENABLED_EVENT_TYPES.has(event.type)) {
       await this.premiumService.setIsPremium(true);
+    } else if (PREMIUM_DISABLED_EVENT_TYPES.has(event.type)) {
+      await this.premiumService.setIsPremium(false);
     }
     return { received: true };
   }

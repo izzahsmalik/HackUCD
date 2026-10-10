@@ -7,7 +7,12 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     proxy: {
-      '/api': 'http://localhost:3000',
+      // The NestJS backend serves unprefixed routes, so the /api prefix is
+      // stripped here; the client always calls /api/... for same-origin paths.
+      '/api': {
+        target: 'http://localhost:3000',
+        rewrite: (path) => path.replace(/^\/api/, ''),
+      },
     },
   },
 })

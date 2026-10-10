@@ -2,11 +2,11 @@ import { BadRequestException } from '@nestjs/common';
 import { PaymentsService } from './payments.service.js';
 import { StripeSignatureError } from './stripe.client.js';
 
-const EVENT_COMPLETED = {
+const EVENT = (type: string) => ({
   id: 'evt_1',
-  type: 'checkout.session.completed',
+  type,
   data: { object: {} },
-};
+});
 
 function makeService() {
   const stripeClient = {
@@ -85,31 +85,29 @@ describe('PaymentsService', () => {
       );
     });
 
-    it('enables premium on checkout.session.completed', async () => {
+    it('enables premium on invoice.paid', async () => {
       const { service, stripeClient, premiumService } = makeService();
-      stripeClient.constructWebhookEvent.mockReturnValue(EVENT_COMPLETED);
+      stripeClient.constructWebhookEvent.mockReturnValue(EVENT('invoice.paid'));
       await expect(
         service.handleWebhook('payload', 't=1,v1=abc'),
       ).resolves.toEqual({ received: true });
       expect(premiumService.setIsPremium).toHaveBeenCalledWith(true);
     });
 
-    it('enables premium on async_payment_succeeded too', async () => {
+    it('re-locks premium on customer.subscription.deleted', async () => {
       const { service, stripeClient, premiumService } = makeService();
-      stripeClient.constructWebhookEvent.mockReturnValue({
-        ...EVENT_COMPLETED,
-        type: 'checkout.session.async_payment_succeeded',
-      });
+      stripeClient.constructWebhookEvent.mockReturnValue(
+        EVENT('customer.subscription.deleted'),
+      );
       await service.handleWebhook('payload', 't=1,v1=abc');
-      expect(premiumService.setIsPremium).toHaveBeenCalledWith(true);
+      expect(premiumService.setIsPremium).toHaveBeenCalledWith(false);
     });
 
     it('ignores unrelated event types', async () => {
       const { service, stripeClient, premiumService } = makeService();
-      stripeClient.constructWebhookEvent.mockReturnValue({
-        ...EVENT_COMPLETED,
-        type: 'invoice.paid',
-      });
+      stripeClient.constructWebhookEvent.mockReturnValue(
+        EVENT('checkout.session.completed'),
+      );
       await service.handleWebhook('payload', 't=1,v1=abc');
       expect(premiumService.setIsPremium).not.toHaveBeenCalled();
     });

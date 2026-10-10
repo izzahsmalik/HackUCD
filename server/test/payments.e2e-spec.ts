@@ -11,7 +11,9 @@ import { StripeClient } from './../src/payments/stripe.client.js';
 // bytes supertest sends, so no Stripe network access is involved.
 const WEBHOOK_SECRET = 'whsec_e2e_test';
 const WEBHOOK_PAYLOAD =
-  '{"id":"evt_1","type":"checkout.session.completed","data":{"object":{}}}';
+  '{"id":"evt_1","type":"invoice.paid","data":{"object":{}}}';
+const CANCEL_PAYLOAD =
+  '{"id":"evt_2","type":"customer.subscription.deleted","data":{"object":{}}}';
 
 function webhookSignature(timestamp: number, payload: string): string {
   return createHmac('sha256', WEBHOOK_SECRET)
@@ -103,6 +105,27 @@ describe('Payments (e2e)', () => {
       .set('stripe-signature', `t=${t},v1=${'a'.repeat(64)}`)
       .send(WEBHOOK_PAYLOAD)
       .expect(400);
+  });
+
+  it('POST /payments/webhook subscription.deleted re-locks premium', async () => {
+    const t = Math.floor(Date.now() / 1000);
+    await request(app.getHttpServer())
+      .post('/payments/dev-complete')
+      .expect(201);
+    await request(app.getHttpServer())
+      .post('/payments/webhook')
+      .set('content-type', 'application/json')
+      .set(
+        'stripe-signature',
+        `t=${t},v1=${webhookSignature(t, CANCEL_PAYLOAD)}`,
+      )
+      .send(CANCEL_PAYLOAD)
+      .expect(200)
+      .expect({ received: true });
+    return request(app.getHttpServer())
+      .get('/payments/status')
+      .expect(200)
+      .expect({ isPremium: false });
   });
 
   it('POST /payments/checkout-session returns 503 without Stripe keys', () => {

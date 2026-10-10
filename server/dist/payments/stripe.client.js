@@ -32,7 +32,7 @@ export class StripeClient {
             throw new StripeConfigurationError('STRIPE_SECRET_KEY is not configured');
         }
         const body = new URLSearchParams({
-            mode: 'payment',
+            mode: 'subscription',
             'line_items[0][price]': input.priceId,
             'line_items[0][quantity]': '1',
             success_url: input.successUrl,
