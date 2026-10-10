@@ -5,6 +5,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
 import { Module } from '@nestjs/common';
+import { ActionQueueModule } from '../action-queue/action-queue.module.js';
 import { IngestModule } from '../ingest/ingest.module.js';
 import { McpController } from './mcp.controller.js';
 import { McpServerFactory } from './mcp-server.factory.js';
@@ -12,7 +13,7 @@ let McpModule = class McpModule {
 };
 McpModule = __decorate([
     Module({
-        imports: [IngestModule],
+        imports: [ActionQueueModule, IngestModule],
         controllers: [McpController],
         providers: [McpServerFactory],
     })

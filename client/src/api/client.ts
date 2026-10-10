@@ -20,7 +20,19 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
   })
 
   if (!response.ok) {
-    throw new ApiError(response.status, `Request failed: ${response.status} ${response.statusText}`)
+    // Nest error bodies carry a `message` field; surface it so validation
+    // messages like "'productId' must be a positive integer" reach the UI.
+    const body = await response.json().catch(() => null)
+    const detail =
+      typeof body?.message === 'string'
+        ? `: ${body.message}`
+        : Array.isArray(body?.message)
+          ? `: ${body.message.join(', ')}`
+          : ''
+    throw new ApiError(
+      response.status,
+      `Request failed: ${response.status} ${response.statusText}${detail}`,
+    )
   }
 
   return response.json() as Promise<T>

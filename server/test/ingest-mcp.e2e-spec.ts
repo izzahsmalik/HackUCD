@@ -115,6 +115,22 @@ describe('Ingest upload and MCP (e2e)', () => {
       });
   });
 
+  it('POST /mcp lists the action queue tools', () => {
+    return request(app.getHttpServer())
+      .post('/mcp')
+      .set('Accept', 'application/json, text/event-stream')
+      .send({ jsonrpc: '2.0', id: 3, method: 'tools/list' })
+      .expect(200)
+      .expect((res) => {
+        const names = jsonResult(res).tools.map(
+          (t: { name: string }) => t.name,
+        );
+        expect(names).toContain('list_pending_decisions');
+        expect(names).toContain('get_decision');
+        expect(names).toContain('resolve_decision');
+      });
+  });
+
   it('GET /mcp is refused in stateless mode', () => {
     return request(app.getHttpServer())
       .get('/mcp')

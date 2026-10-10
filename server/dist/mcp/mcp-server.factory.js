@@ -7,16 +7,19 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-import { ConflictException, Injectable } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException, } from '@nestjs/common';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
+import { ActionQueueService } from '../action-queue/action-queue.service.js';
 import { IngestService } from '../ingest/ingest.service.js';
 const SERVER_NAME = 'hackucd-ingest';
 const SERVER_VERSION = '0.0.1';
 let McpServerFactory = class McpServerFactory {
     ingestService;
-    constructor(ingestService) {
+    actionQueueService;
+    constructor(ingestService, actionQueueService) {
         this.ingestService = ingestService;
+        this.actionQueueService = actionQueueService;
     }
     create() {
         const server = new McpServer({
@@ -50,15 +53,79 @@ let McpServerFactory = class McpServerFactory {
                 return { isError: true, content: [{ type: 'text', text: message }] };
             }
         });
+        server.registerTool('list_pending_decisions', {
+            title: 'List pending decisions',
+            description: 'List the rows queued for human resolution. Each item is a decision ' +
+                'view: { id, type, summary, actions, data }. Every action declares the ' +
+                'payload fields it expects; pass them to resolve_decision to apply the ' +
+                'chosen action and remove the decision from the queue.',
+            inputSchema: {},
+        }, async () => this.wrap(() => this.actionQueueService.list()));
+        server.registerTool('get_decision', {
+            title: 'Get a decision',
+            description: 'Get one pending decision by id, including its full data (the raw CSV ' +
+                'row, candidate products or existing categories).',
+            inputSchema: {
+                id: z
+                    .number()
+                    .int()
+                    .positive()
+                    .describe('Decision id from list_pending_decisions'),
+            },
+        }, async ({ id }) => this.wrap(() => this.actionQueueService.get(id)));
+        server.registerTool('resolve_decision', {
+            title: 'Resolve a decision',
+            description: "Apply one of a decision's actions and remove it from the queue. " +
+                "actionId must match one of the decision's action ids (e.g. " +
+                'match-product, create-product, categorize, categorize-new, discard); ' +
+                'payload must contain the fields that action declares.',
+            inputSchema: {
+                id: z.number().int().positive().describe('Decision id'),
+                actionId: z
+                    .string()
+                    .min(1)
+                    .describe("Action id from the decision's actions list"),
+                payload: z
+                    .record(z.string(), z.unknown())
+                    .optional()
+                    .describe('Payload fields the chosen action declares'),
+            },
+        }, async ({ id, actionId, payload }) => this.wrap(() => this.actionQueueService.resolve(id, actionId, payload)));
         return server;
+    }
+    async wrap(apply) {
+        try {
+            const result = await apply();
+            return textResult(JSON.stringify(result, null, 2));
+        }
+        catch (error) {
+            let message;
+            if (error instanceof NotFoundException) {
+                message = 'Decision not found (it may already have been resolved).';
+            }
+            else if (error instanceof BadRequestException) {
+                message = error.message;
+            }
+            else {
+                message = String(error);
+            }
+            return errorResult(message);
+        }
     }
 };
 McpServerFactory = __decorate([
     Injectable(),
-    __metadata("design:paramtypes", [IngestService])
+    __metadata("design:paramtypes", [IngestService,
+        ActionQueueService])
 ], McpServerFactory);
 export { McpServerFactory };
 function textResult(text) {
     return { content: [{ type: 'text', text }] };
+}
+function errorResult(text) {
+    return {
+        isError: true,
+        content: [{ type: 'text', text }],
+    };
 }
 //# sourceMappingURL=mcp-server.factory.js.map

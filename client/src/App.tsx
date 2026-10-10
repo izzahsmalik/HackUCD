@@ -1,9 +1,21 @@
+import { ActionQueuePanel } from './components/ActionQueuePanel'
+
 function App() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-2 bg-gray-950 text-gray-100">
-      <h1 className="text-4xl font-bold tracking-tight">HackUCD</h1>
-      <p className="text-gray-400">
-        Edit <code className="rounded bg-gray-800 px-1">src/App.tsx</code> to get started
+    <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-5 px-5 py-8 text-gray-100">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">MarginGuard</h1>
+        <p className="mt-1 text-sm text-gray-400">
+          Rows the importer couldn't confidently classify land here. Resolve
+          them so they enter your books.
+        </p>
+      </div>
+
+      <ActionQueuePanel />
+
+      <p className="text-xs text-gray-500">
+        Pending decisions live in the server's memory; they are lost when it
+        restarts. The queue refreshes every 5 seconds.
       </p>
     </main>
   )
