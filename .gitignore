@@ -1,5 +1,2 @@
-# Claude Code local state (session settings, worktrees)
-.claude/
-
-# Vite/Vitest caches
-.vite/
+.env
+node_modules
