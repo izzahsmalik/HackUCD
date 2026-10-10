@@ -1,8 +1,9 @@
-import { ConflictException } from '@nestjs/common';
+import { BadRequestException, ConflictException } from '@nestjs/common';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { IngestService } from '../ingest/ingest.service.js';
 import { IngestRunSummary } from '../ingest/ingest-result.js';
+import { QueryService } from '../query/query.service.js';
 import { McpServerFactory } from './mcp-server.factory.js';
 
 function makeSummary(): IngestRunSummary {
@@ -21,8 +22,11 @@ function makeSummary(): IngestRunSummary {
   };
 }
 
-async function connect(ingestService: IngestService) {
-  const server = new McpServerFactory(ingestService).create();
+async function connect(
+  ingestService: IngestService,
+  queryService: QueryService = {} as QueryService,
+) {
+  const server = new McpServerFactory(ingestService, queryService).create();
   const client = new Client({ name: 'test', version: '0.0.1' });
   // The SDK types createLinkedPair() as sync, but it returns a Promise at
   // runtime — hence the cast before awaiting.
@@ -36,14 +40,16 @@ async function connect(ingestService: IngestService) {
 }
 
 describe('McpServerFactory', () => {
-  it('lists the ingest_csv tool', async () => {
+  it('lists both tools', async () => {
     const { client } = await connect({} as IngestService);
 
     const { tools } = await client.listTools();
 
-    const tool = tools.find((t) => t.name === 'ingest_csv');
-    expect(tool).toBeDefined();
-    expect(tool!.inputSchema.required).toContain('csv');
+    expect(tools.map((t) => t.name)).toEqual(
+      expect.arrayContaining(['ingest_csv', 'ask_financial_question']),
+    );
+    const queryTool = tools.find((t) => t.name === 'ask_financial_question');
+    expect(queryTool!.inputSchema.required).toContain('question');
   });
 
   it('returns the ingest summary as JSON text', async () => {
@@ -92,5 +98,51 @@ describe('McpServerFactory', () => {
     expect(result.isError).toBe(true);
     const text = (result.content as { type: string; text: string }[])[0].text;
     expect(text).toMatch(/already in progress/);
+  });
+
+  it('returns the query response as JSON text', async () => {
+    const response = {
+      answer: 'You spent $10.50.',
+      plan: { entity: 'transactions', aggregation: 'sum' },
+      data: { entity: 'transactions', rowCount: 2, totals: { count: 2 } },
+    };
+    const ask = vi.fn().mockResolvedValue(response);
+    const { client } = await connect(
+      {} as IngestService,
+      { ask } as unknown as QueryService,
+    );
+
+    const result = await client.callTool({
+      name: 'ask_financial_question',
+      arguments: { question: 'How much did I spend?' },
+    });
+
+    expect(ask).toHaveBeenCalledWith('How much did I spend?');
+    expect(result.isError).toBeUndefined();
+    const text = (result.content as { type: string; text: string }[])[0].text;
+    expect(JSON.parse(text)).toEqual(response);
+  });
+
+  it('reports an invalid question as an error result, not a throw', async () => {
+    const ask = vi
+      .fn()
+      .mockRejectedValue(
+        new BadRequestException(
+          'The question could not be turned into a valid query: entity must be …',
+        ),
+      );
+    const { client } = await connect(
+      {} as IngestService,
+      { ask } as unknown as QueryService,
+    );
+
+    const result = await client.callTool({
+      name: 'ask_financial_question',
+      arguments: { question: 'nonsense' },
+    });
+
+    expect(result.isError).toBe(true);
+    const text = (result.content as { type: string; text: string }[])[0].text;
+    expect(text).toMatch(/could not be turned into a valid query/);
   });
 });

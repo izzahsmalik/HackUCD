@@ -14,6 +14,7 @@ import { ProductsModule } from './products/products.module.js';
 import { TransactionsModule } from './transactions/transactions.module.js';
 import { ActionQueueModule } from './action-queue/action-queue.module.js';
 import { IngestModule } from './ingest/ingest.module.js';
+import { QueryModule } from './query/query.module.js';
 import { McpModule } from './mcp/mcp.module.js';
 let AppModule = class AppModule {
 };
@@ -33,6 +34,7 @@ AppModule = __decorate([
             TransactionsModule,
             ActionQueueModule,
             IngestModule,
+            QueryModule,
             McpModule,
         ],
         controllers: [AppController],

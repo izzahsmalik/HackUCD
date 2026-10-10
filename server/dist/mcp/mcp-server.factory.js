@@ -7,16 +7,20 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-import { ConflictException, Injectable } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, } from '@nestjs/common';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { IngestService } from '../ingest/ingest.service.js';
+import { QueryService } from '../query/query.service.js';
+import { QUERY_TOOL_DESCRIPTION, QUERY_TOOL_NAME, } from '../query/query-tool.js';
 const SERVER_NAME = 'hackucd-ingest';
 const SERVER_VERSION = '0.0.1';
 let McpServerFactory = class McpServerFactory {
     ingestService;
-    constructor(ingestService) {
+    queryService;
+    constructor(ingestService, queryService) {
         this.ingestService = ingestService;
+        this.queryService = queryService;
     }
     create() {
         const server = new McpServer({
@@ -50,12 +54,37 @@ let McpServerFactory = class McpServerFactory {
                 return { isError: true, content: [{ type: 'text', text: message }] };
             }
         });
+        this.registerQueryTool(server);
         return server;
+    }
+    registerQueryTool(server) {
+        server.registerTool(QUERY_TOOL_NAME, {
+            title: 'Ask a financial question',
+            description: QUERY_TOOL_DESCRIPTION,
+            inputSchema: {
+                question: z
+                    .string()
+                    .min(1)
+                    .describe('Natural-language question, e.g. "How much did I spend on groceries last month?"'),
+            },
+        }, async ({ question }) => {
+            try {
+                const response = await this.queryService.ask(question);
+                return textResult(JSON.stringify(response, null, 2));
+            }
+            catch (error) {
+                const message = error instanceof BadRequestException
+                    ? error.message
+                    : String(error);
+                return { isError: true, content: [{ type: 'text', text: message }] };
+            }
+        });
     }
 };
 McpServerFactory = __decorate([
     Injectable(),
-    __metadata("design:paramtypes", [IngestService])
+    __metadata("design:paramtypes", [IngestService,
+        QueryService])
 ], McpServerFactory);
 export { McpServerFactory };
 function textResult(text) {
