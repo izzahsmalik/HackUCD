@@ -4,24 +4,14 @@ import { join } from 'node:path';
 import { ActionQueueService } from '../action-queue/action-queue.service.js';
 import { ProductsIngestService } from './products-ingest.service.js';
 import { TransactionsIngestService } from './transactions-ingest.service.js';
-import { CsvRow, readCsvRows } from './csv-file.js';
+import { CsvRow, parseCsvText, readCsvRows } from './csv-file.js';
 import { FileClassifier, FileKind } from './file-classifier.js';
 import { DEFAULT_INGEST_DIRECTORY } from './ingest.constants.js';
-import { IngestFileResult } from './ingest-result.js';
-
-export interface IngestFileSummary {
-  fileName: string;
-  kind: FileKind | null;
-  rowsTotal: number;
-  rowsPersisted: number;
-  decisionsCreated: number;
-  errors: string[];
-}
-
-export interface IngestRunSummary {
-  files: IngestFileSummary[];
-  pendingDecisions: number;
-}
+import {
+  IngestFileResult,
+  IngestFileSummary,
+  IngestRunSummary,
+} from './ingest-result.js';
 
 @Injectable()
 export class IngestService {
@@ -40,13 +30,40 @@ export class IngestService {
    * still awaiting LLM calls.
    */
   async run(directory?: string): Promise<IngestRunSummary> {
+    return this.exclusive(() =>
+      this.runFiles(
+        directory ?? process.env.INGEST_DIRECTORY ?? DEFAULT_INGEST_DIRECTORY,
+      ),
+    );
+  }
+
+  /**
+   * Ingests one CSV supplied in memory (an HTTP upload or an MCP tool call).
+   * Shares the directory scan's overlap guard: both insert rows and issue LLM
+   * calls, so only one may run at a time. Parse failures are reported in the
+   * file summary rather than thrown.
+   */
+  async ingestCsv(fileName: string, text: string): Promise<IngestRunSummary> {
+    return this.exclusive(async () => {
+      const summary = emptySummary(fileName);
+      try {
+        const rows = parseCsvText(text, fileName);
+        summary.rowsTotal = rows.length;
+        Object.assign(summary, await this.processRows(fileName, rows));
+      } catch (error) {
+        summary.errors.push(String(error));
+      }
+      return { files: [summary], pendingDecisions: this.actionQueue.count() };
+    });
+  }
+
+  /** Runs `fn` alone: refuses while another ingest is in progress. */
+  private async exclusive<T>(fn: () => Promise<T>): Promise<T> {
     if (this.running)
       throw new ConflictException('An ingest run is already in progress');
     this.running = true;
     try {
-      return await this.runFiles(
-        directory ?? process.env.INGEST_DIRECTORY ?? DEFAULT_INGEST_DIRECTORY,
-      );
+      return await fn();
     } finally {
       this.running = false;
     }
@@ -61,30 +78,11 @@ export class IngestService {
     const summaries: IngestFileSummary[] = [];
     for (const entry of files) {
       const fileName = entry.name;
-      const path = join(directory, fileName);
-      const summary: IngestFileSummary = {
-        fileName,
-        kind: null,
-        rowsTotal: 0,
-        rowsPersisted: 0,
-        decisionsCreated: 0,
-        errors: [],
-      };
+      const summary = emptySummary(fileName);
       try {
-        const rows = await readCsvRows(path);
+        const rows = await readCsvRows(join(directory, fileName));
         summary.rowsTotal = rows.length;
-        summary.kind = await this.classifier.classify(fileName, rows);
-        if (!summary.kind) {
-          summary.errors.push(
-            'could not determine whether the file is transactions or product pricing',
-          );
-          summaries.push(summary);
-          continue;
-        }
-        const result = await this.ingestRows(summary.kind, fileName, rows);
-        summary.rowsPersisted = result.rowsPersisted;
-        summary.decisionsCreated = result.decisionsCreated;
-        summary.errors = result.errors;
+        Object.assign(summary, await this.processRows(fileName, rows));
       } catch (error) {
         summary.errors.push(String(error));
       }
@@ -92,6 +90,34 @@ export class IngestService {
     }
 
     return { files: summaries, pendingDecisions: this.actionQueue.count() };
+  }
+
+  private async processRows(
+    fileName: string,
+    rows: CsvRow[],
+  ): Promise<Omit<IngestFileSummary, 'fileName' | 'rowsTotal'>> {
+    const kind = await this.classifier.classify(fileName, rows);
+    if (!kind) {
+      return {
+        kind: null,
+        rowsPersisted: 0,
+        decisionsCreated: 0,
+        errors: [
+          'could not determine whether the file is transactions or product pricing',
+        ],
+      };
+    }
+    const result: IngestFileResult = await this.ingestRows(
+      kind,
+      fileName,
+      rows,
+    );
+    return {
+      kind,
+      rowsPersisted: result.rowsPersisted,
+      decisionsCreated: result.decisionsCreated,
+      errors: result.errors,
+    };
   }
 
   private ingestRows(
@@ -103,4 +129,15 @@ export class IngestService {
       ? this.transactionsIngest.ingest(fileName, rows)
       : this.productsIngest.ingest(fileName, rows);
   }
+}
+
+function emptySummary(fileName: string): IngestFileSummary {
+  return {
+    fileName,
+    kind: null,
+    rowsTotal: 0,
+    rowsPersisted: 0,
+    decisionsCreated: 0,
+    errors: [],
+  };
 }

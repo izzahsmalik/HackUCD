@@ -1,14 +1,16 @@
 import { readFile } from 'node:fs/promises';
 import Papa from 'papaparse';
 export async function readCsvRows(path) {
-    const text = await readFile(path, 'utf8');
-    const parsed = Papa.parse(text, {
+    return parseCsvText(await readFile(path, 'utf8'), path);
+}
+export function parseCsvText(text, label = 'input') {
+    const parsed = Papa.parse(text.replace(/^﻿/, ''), {
         header: true,
         skipEmptyLines: true,
     });
     if (parsed.errors.length > 0) {
         const first = parsed.errors[0];
-        throw new Error(`Failed to parse ${path}: ${first.message} (row ${first.row ?? '?'})`);
+        throw new Error(`Failed to parse ${label}: ${first.message} (row ${first.row ?? '?'})`);
     }
     return parsed.data;
 }

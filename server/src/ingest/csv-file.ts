@@ -5,15 +5,24 @@ export type CsvRow = Record<string, string>;
 
 /** Reads a CSV file from disk and parses it into header-keyed string rows. */
 export async function readCsvRows(path: string): Promise<CsvRow[]> {
-  const text = await readFile(path, 'utf8');
-  const parsed = Papa.parse<CsvRow>(text, {
+  return parseCsvText(await readFile(path, 'utf8'), path);
+}
+
+/**
+ * Parses CSV text into header-keyed string rows. `label` names the source in
+ * error messages (a path, an upload name, ...).
+ */
+export function parseCsvText(text: string, label = 'input'): CsvRow[] {
+  // Excel-exported CSVs often start with a UTF-8 BOM; drop it so the first
+  // header name does not carry an invisible prefix.
+  const parsed = Papa.parse<CsvRow>(text.replace(/^﻿/, ''), {
     header: true,
     skipEmptyLines: true,
   });
   if (parsed.errors.length > 0) {
     const first = parsed.errors[0];
     throw new Error(
-      `Failed to parse ${path}: ${first.message} (row ${first.row ?? '?'})`,
+      `Failed to parse ${label}: ${first.message} (row ${first.row ?? '?'})`,
     );
   }
   return parsed.data;

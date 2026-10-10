@@ -42,6 +42,7 @@ IngestModule = __decorate([
             TransactionsIngestService,
             ProductsIngestService,
         ],
+        exports: [IngestService],
     })
 ], IngestModule);
 export { IngestModule };

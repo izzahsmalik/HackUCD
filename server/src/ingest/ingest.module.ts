@@ -34,5 +34,6 @@ import { TransactionsIngestService } from './transactions-ingest.service.js';
     TransactionsIngestService,
     ProductsIngestService,
   ],
+  exports: [IngestService],
 })
 export class IngestModule {}
