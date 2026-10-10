@@ -8,8 +8,11 @@ import { AppModule } from './app.module.js';
 const BODY_LIMIT = '10mb';
 
 async function bootstrap() {
+  // rawBody keeps the untouched request bytes on req.rawBody, which the Stripe
+  // webhook needs to verify signatures over the exact payload Stripe signed.
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bodyParser: false,
+    rawBody: true,
   });
   app.useBodyParser('json', { limit: BODY_LIMIT });
   await app.listen(process.env.PORT ?? 3000);

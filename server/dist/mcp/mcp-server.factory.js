@@ -12,13 +12,17 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { ActionQueueService } from '../action-queue/action-queue.service.js';
 import { IngestService } from '../ingest/ingest.service.js';
+import { QueryService } from '../query/query.service.js';
+import { QUERY_TOOL_DESCRIPTION, QUERY_TOOL_NAME, } from '../query/query-tool.js';
 const SERVER_NAME = 'hackucd-ingest';
 const SERVER_VERSION = '0.0.1';
 let McpServerFactory = class McpServerFactory {
     ingestService;
+    queryService;
     actionQueueService;
-    constructor(ingestService, actionQueueService) {
+    constructor(ingestService, queryService, actionQueueService) {
         this.ingestService = ingestService;
+        this.queryService = queryService;
         this.actionQueueService = actionQueueService;
     }
     create() {
@@ -53,6 +57,7 @@ let McpServerFactory = class McpServerFactory {
                 return { isError: true, content: [{ type: 'text', text: message }] };
             }
         });
+        this.registerQueryTool(server);
         server.registerTool('list_pending_decisions', {
             title: 'List pending decisions',
             description: 'List the rows queued for human resolution. Each item is a decision ' +
@@ -93,6 +98,29 @@ let McpServerFactory = class McpServerFactory {
         }, async ({ id, actionId, payload }) => this.wrap(() => this.actionQueueService.resolve(id, actionId, payload)));
         return server;
     }
+    registerQueryTool(server) {
+        server.registerTool(QUERY_TOOL_NAME, {
+            title: 'Ask a financial question',
+            description: QUERY_TOOL_DESCRIPTION,
+            inputSchema: {
+                question: z
+                    .string()
+                    .min(1)
+                    .describe('Natural-language question, e.g. "How much did I spend on groceries last month?"'),
+            },
+        }, async ({ question }) => {
+            try {
+                const response = await this.queryService.ask(question);
+                return textResult(JSON.stringify(response, null, 2));
+            }
+            catch (error) {
+                const message = error instanceof BadRequestException
+                    ? error.message
+                    : String(error);
+                return { isError: true, content: [{ type: 'text', text: message }] };
+            }
+        });
+    }
     async wrap(apply) {
         try {
             const result = await apply();
@@ -116,6 +144,7 @@ let McpServerFactory = class McpServerFactory {
 McpServerFactory = __decorate([
     Injectable(),
     __metadata("design:paramtypes", [IngestService,
+        QueryService,
         ActionQueueService])
 ], McpServerFactory);
 export { McpServerFactory };

@@ -8,7 +8,9 @@ import { ProductsModule } from './products/products.module.js';
 import { TransactionsModule } from './transactions/transactions.module.js';
 import { ActionQueueModule } from './action-queue/action-queue.module.js';
 import { IngestModule } from './ingest/ingest.module.js';
+import { QueryModule } from './query/query.module.js';
 import { McpModule } from './mcp/mcp.module.js';
+import { PaymentsModule } from './payments/payments.module.js';
 
 @Module({
   imports: [
@@ -25,7 +27,9 @@ import { McpModule } from './mcp/mcp.module.js';
     TransactionsModule,
     ActionQueueModule,
     IngestModule,
+    QueryModule,
     McpModule,
+    PaymentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
