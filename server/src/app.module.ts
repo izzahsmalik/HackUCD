@@ -9,6 +9,7 @@ import { TransactionsModule } from './transactions/transactions.module.js';
 import { ActionQueueModule } from './action-queue/action-queue.module.js';
 import { IngestModule } from './ingest/ingest.module.js';
 import { McpModule } from './mcp/mcp.module.js';
+import { PaymentsModule } from './payments/payments.module.js';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { McpModule } from './mcp/mcp.module.js';
     ActionQueueModule,
     IngestModule,
     McpModule,
+    PaymentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
