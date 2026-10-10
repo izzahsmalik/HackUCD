@@ -11,6 +11,7 @@ import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { BrandsModule } from './brands/brands.module.js';
 import { ProductsModule } from './products/products.module.js';
+import { TransactionsModule } from './transactions/transactions.module.js';
 let AppModule = class AppModule {
 };
 AppModule = __decorate([
@@ -26,6 +27,7 @@ AppModule = __decorate([
             }),
             BrandsModule,
             ProductsModule,
+            TransactionsModule,
         ],
         controllers: [AppController],
         providers: [AppService],
