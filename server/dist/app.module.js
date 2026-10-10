@@ -9,6 +9,8 @@ import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { defineConfig } from '@mikro-orm/sqlite';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
+import { BrandsModule } from './brands/brands.module.js';
+import { ProductsModule } from './products/products.module.js';
 let AppModule = class AppModule {
 };
 AppModule = __decorate([
@@ -18,10 +20,12 @@ AppModule = __decorate([
                 ...defineConfig({
                     dbName: 'data/db.sqlite3',
                     entities: [],
-                    discovery: { warnWhenNoEntities: false },
+                    ensureDatabase: { create: true },
                 }),
                 autoLoadEntities: true,
             }),
+            BrandsModule,
+            ProductsModule,
         ],
         controllers: [AppController],
         providers: [AppService],
