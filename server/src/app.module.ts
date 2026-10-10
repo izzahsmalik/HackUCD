@@ -9,6 +9,7 @@ import { TransactionsModule } from './transactions/transactions.module.js';
 import { ActionQueueModule } from './action-queue/action-queue.module.js';
 import { IngestModule } from './ingest/ingest.module.js';
 import { QueryModule } from './query/query.module.js';
+import { McpModule } from './mcp/mcp.module.js';
 
 @Module({
   imports: [
@@ -25,9 +26,8 @@ import { QueryModule } from './query/query.module.js';
     TransactionsModule,
     ActionQueueModule,
     IngestModule,
-    // The MCP module (server/src/mcp/, built separately) should import QueryModule
-    // and use QueryService + the query-tool.ts exports for its tool.
     QueryModule,
+    McpModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -9,3 +9,7 @@ export const DEFAULT_BATCH_SIZE = 25;
 
 /** Max product names passed to the LLM in one matching call. */
 export const MAX_PRODUCTS_PER_CALL = 150;
+
+/** Max accepted upload size in bytes (overridable via UPLOAD_MAX_BYTES). */
+export const MAX_UPLOAD_BYTES =
+  Number(process.env.UPLOAD_MAX_BYTES) || 10 * 1024 * 1024;

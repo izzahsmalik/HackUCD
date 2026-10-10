@@ -13,7 +13,7 @@ import { join } from 'node:path';
 import { ActionQueueService } from '../action-queue/action-queue.service.js';
 import { ProductsIngestService } from './products-ingest.service.js';
 import { TransactionsIngestService } from './transactions-ingest.service.js';
-import { readCsvRows } from './csv-file.js';
+import { parseCsvText, readCsvRows } from './csv-file.js';
 import { FileClassifier } from './file-classifier.js';
 import { DEFAULT_INGEST_DIRECTORY } from './ingest.constants.js';
 let IngestService = class IngestService {
@@ -29,11 +29,28 @@ let IngestService = class IngestService {
         this.actionQueue = actionQueue;
     }
     async run(directory) {
+        return this.exclusive(() => this.runFiles(directory ?? process.env.INGEST_DIRECTORY ?? DEFAULT_INGEST_DIRECTORY));
+    }
+    async ingestCsv(fileName, text) {
+        return this.exclusive(async () => {
+            const summary = emptySummary(fileName);
+            try {
+                const rows = parseCsvText(text, fileName);
+                summary.rowsTotal = rows.length;
+                Object.assign(summary, await this.processRows(fileName, rows));
+            }
+            catch (error) {
+                summary.errors.push(String(error));
+            }
+            return { files: [summary], pendingDecisions: this.actionQueue.count() };
+        });
+    }
+    async exclusive(fn) {
         if (this.running)
             throw new ConflictException('An ingest run is already in progress');
         this.running = true;
         try {
-            return await this.runFiles(directory ?? process.env.INGEST_DIRECTORY ?? DEFAULT_INGEST_DIRECTORY);
+            return await fn();
         }
         finally {
             this.running = false;
@@ -45,28 +62,11 @@ let IngestService = class IngestService {
         const summaries = [];
         for (const entry of files) {
             const fileName = entry.name;
-            const path = join(directory, fileName);
-            const summary = {
-                fileName,
-                kind: null,
-                rowsTotal: 0,
-                rowsPersisted: 0,
-                decisionsCreated: 0,
-                errors: [],
-            };
+            const summary = emptySummary(fileName);
             try {
-                const rows = await readCsvRows(path);
+                const rows = await readCsvRows(join(directory, fileName));
                 summary.rowsTotal = rows.length;
-                summary.kind = await this.classifier.classify(fileName, rows);
-                if (!summary.kind) {
-                    summary.errors.push('could not determine whether the file is transactions or product pricing');
-                    summaries.push(summary);
-                    continue;
-                }
-                const result = await this.ingestRows(summary.kind, fileName, rows);
-                summary.rowsPersisted = result.rowsPersisted;
-                summary.decisionsCreated = result.decisionsCreated;
-                summary.errors = result.errors;
+                Object.assign(summary, await this.processRows(fileName, rows));
             }
             catch (error) {
                 summary.errors.push(String(error));
@@ -74,6 +74,26 @@ let IngestService = class IngestService {
             summaries.push(summary);
         }
         return { files: summaries, pendingDecisions: this.actionQueue.count() };
+    }
+    async processRows(fileName, rows) {
+        const kind = await this.classifier.classify(fileName, rows);
+        if (!kind) {
+            return {
+                kind: null,
+                rowsPersisted: 0,
+                decisionsCreated: 0,
+                errors: [
+                    'could not determine whether the file is transactions or product pricing',
+                ],
+            };
+        }
+        const result = await this.ingestRows(kind, fileName, rows);
+        return {
+            kind,
+            rowsPersisted: result.rowsPersisted,
+            decisionsCreated: result.decisionsCreated,
+            errors: result.errors,
+        };
     }
     ingestRows(kind, fileName, rows) {
         return kind === 'transactions'
@@ -89,4 +109,14 @@ IngestService = __decorate([
         ActionQueueService])
 ], IngestService);
 export { IngestService };
+function emptySummary(fileName) {
+    return {
+        fileName,
+        kind: null,
+        rowsTotal: 0,
+        rowsPersisted: 0,
+        decisionsCreated: 0,
+        errors: [],
+    };
+}
 //# sourceMappingURL=ingest.service.js.map

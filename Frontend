@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MarginGuard dashboard</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap">
+<style>
+:root{--bg:#f3f5f9;--surface:#fff;--ink:#111827;--muted:#5b6472;--line:#d5dbe5;--accent:#2563eb;--accent-ink:#fff;--bad:#d92d20;--bad-bg:#fee4e2;--ok:#067647;--ok-bg:#dcfae6;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px)}
+:root{color-scheme:light}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:900px;margin:0 auto;padding:32px 20px 220px}
+h1{font:700 clamp(22px,4vw,28px)/1.2 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;margin:0 0 4px}
+h2{font:600 16px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;margin:28px 0 10px}
+.sub{color:var(--muted);margin:0}
+button{font:inherit;cursor:pointer}
+button:focus-visible,input:focus{outline:2px solid var(--accent);outline-offset:2px}
+.hdr{position:relative;display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.tags{display:flex;gap:8px;align-items:center;flex:none}
+.tag{font-size:12px;font-weight:600;border:1px solid var(--line);border-radius:999px;padding:3px 10px;color:var(--muted);background:var(--surface)}
+.gear{font-size:20px;line-height:1;background:var(--surface);border:1px solid var(--line);border-radius:50%;width:40px;height:40px;color:var(--ink)}
+.dev{display:none;position:absolute;right:0;top:48px;z-index:6;width:min(320px,calc(100vw - 40px));background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.dev.open{display:block}.dev h3{font-size:15px;margin:0 0 4px}.dev p{margin:0 0 10px;font-size:13px;color:var(--muted)}
+.dev label{display:flex;gap:8px;margin:0 0 8px;font-size:14px;cursor:pointer}.dev code{font-size:12px;color:var(--muted);display:block}
+.qbtn{border:0;border-radius:999px;padding:8px 16px;font-weight:600;background:#b3261e;color:#fff;margin-top:20px}
+.qbtn.clear{background:var(--ok-bg);color:var(--ok)}
+.q{background:var(--surface);border:1px solid var(--line);border-left:5px solid #b3261e;border-radius:12px;padding:12px 16px;margin-top:10px}
+.q.done{border-left-color:var(--ok);color:var(--muted)}.q p{margin:0 0 4px}
+code.r{background:var(--bg);border-radius:6px;padding:2px 6px;font-size:13px}
+.qa{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.qa button{font-size:14px;border-radius:8px;padding:6px 12px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:22px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 16px}
+.kpi b{display:block;font:700 24px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}.kpi span{font-size:13px;color:var(--muted)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 18px;margin-bottom:10px}
+.feed{display:flex;justify-content:space-between;gap:12px;align-items:center;border-left:5px solid var(--bad)}
+.feed p{margin:0}.link{background:none;border:0;color:var(--accent);font-weight:600;padding:0;white-space:nowrap}
+.top{display:flex;justify-content:space-between;align-items:center;gap:10px}.top h3{margin:0;font-size:17px}
+.badge{font-size:13px;font-weight:600;border-radius:999px;padding:3px 10px}
+.bad{color:var(--bad);background:var(--bad-bg)}.ok{color:var(--ok);background:var(--ok-bg)}
+.track{position:relative;height:12px;border-radius:6px;background:var(--line);margin:12px 0 8px}
+.fill{position:absolute;left:0;top:0;bottom:0;border-radius:6px}.fill.bad{background:var(--bad)}.fill.ok{background:var(--ok)}
+.tick{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--ink)}
+.was{position:absolute;top:-2px;bottom:-2px;border-left:2px dashed var(--muted)}
+.facts{display:flex;flex-wrap:wrap;gap:4px 22px;font-size:14px;color:var(--muted)}.facts b{color:var(--ink)}
+.legend{font-size:13px;color:var(--muted);margin:0 0 10px}
+.pro{border:1px dashed var(--accent);display:flex;flex-wrap:wrap;gap:10px 16px;justify-content:space-between;align-items:center}
+.btn{background:var(--accent);color:var(--accent-ink);border:0;border-radius:10px;padding:9px 16px;font-weight:600}
+.foot{font-size:13px;color:var(--muted);max-width:70ch;margin-top:24px}
+.chat{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding:12px 20px calc(12px + env(safe-area-inset-bottom,0px));z-index:5}
+.chat>div{max-width:900px;margin:0 auto}
+#reply{display:none;background:var(--bg);border-radius:10px;padding:10px 14px;margin-bottom:10px;font-size:14px;max-height:30vh;overflow:auto}
+#reply small{display:block;color:var(--muted);margin-top:6px}
+.chips{display:flex;gap:8px;overflow-x:auto;margin-bottom:10px;padding-bottom:2px}
+.chip{flex:none;font-size:13px;color:var(--ink);background:transparent;border:1px solid var(--line);border-radius:999px;padding:5px 12px}
+.chip:hover{border-color:var(--accent)}
+.send{display:flex;gap:8px}.send input{flex:1;min-width:0;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.card,.dev,.q,.kpi,.chat input,#reply{border-radius:8px}
+.btn,.qbtn,.qa button,.gear{border-radius:8px}
+.card,.kpi{box-shadow:0 1px 2px rgba(16,24,40,.06)}
+.track{height:8px}
+body,h1,h2,.kpi b{font-family:"Manrope",system-ui,-apple-system,"Segoe UI",sans-serif}
+.card,.kpi,.dev,.q{border-radius:14px}
+.btn,.qa button,.chat input,#reply{border-radius:10px}
+.qbtn,.badge,.tag,.chip{border-radius:999px}
+.gear{border-radius:50%}
+.track,.fill,code.r{border-radius:6px}
+.card,.kpi,.dev,.q{box-shadow:none;border-color:#c3cad6}
+.badge,.tag{border:1px solid currentColor;font-weight:600}
+.btn,.qbtn{padding:9px 16px}
+.chip{border-color:#c3cad6}
+:root{--bg:#fff;--surface:#fff;--ink:#0f172a;--muted:#64748b;--line:#e2e8f0;--accent:#4f46e5;--accent-ink:#fff;--bad:#dc2626;--bad-bg:#fef2f2;--ok:#059669;--ok-bg:#ecfdf5}
+body,h1,h2,.kpi b{font-family:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+*{border-radius:4px!important}
+.card,.kpi,.dev,#queue,.send{border-radius:6px!important}
+.track,.fill,.seg i{border-radius:2px!important}
+h1{font-weight:700;letter-spacing:-.025em}
+h2{font-size:13px;font-weight:600;margin:28px 0 10px}
+.sub,.legend,.facts,.foot{color:var(--muted);font-weight:400}
+.card,.kpi,.dev,#queue{background:#fff;border:1px solid var(--line);box-shadow:none}
+.feed{border-left:3px solid var(--bad)}
+.pro{border:1px solid var(--accent)}
+.badge{border:0;font-size:12px;padding:2px 8px}
+.tag{border:1px solid var(--line);background:#fff;font-weight:500}
+.gear{width:34px;height:34px;font-size:16px}
+code.r{font:500 12px "Fira Code",ui-monospace,"SF Mono",Menlo,monospace;background:#f8fafc;border:1px solid var(--line);color:var(--ink);padding:1px 6px}
+#queue{margin-top:20px;overflow:hidden}
+.qhead{display:flex;align-items:center;width:100%;border:0;background:#fff;padding:12px 16px;font-size:14px;color:var(--ink);text-align:left}
+.qhead b{font-weight:600}.qhead .cnt{margin-left:auto;margin-right:12px;font-size:12px;font-weight:600;color:var(--bad);background:var(--bad-bg);padding:2px 8px}
+.qhead.clear .cnt{color:var(--ok);background:var(--ok-bg)}
+#qlist{border-top:1px solid var(--line)}
+.row{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 16px;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:0}.row.done{justify-content:flex-start;color:var(--muted);font-size:14px}
+.ask{margin-top:6px;font-size:14px}
+.act{display:flex;align-items:center;gap:14px}
+.yes{background:var(--accent);color:#fff;border:0;padding:6px 12px;font-size:13px;font-weight:600}
+.no{background:none;border:0;color:var(--muted);font-size:13px;padding:6px 0}.no:hover{color:var(--ink);text-decoration:underline}
+.kpi{padding:14px 16px}
+.kpi .k{display:block;font-size:12px;font-weight:500;color:var(--muted)}
+.kpi b{font-size:26px;font-weight:700;letter-spacing:-.02em;margin:2px 0 10px}
+.kpi .s{display:block;font-size:12px;margin-top:8px}
+.seg{display:flex;gap:3px}.seg i{flex:1;height:6px;background:var(--line)}.seg i.on{background:var(--bad)}
+.up{font-size:12px;font-weight:600;color:var(--ok);font-style:normal;letter-spacing:0}
+.chips{gap:0;margin-bottom:8px}
+.chip{border:0;border-right:1px solid var(--line);background:none;color:var(--muted);padding:2px 14px;font-size:13px}
+.chip:first-child{padding-left:0}.chip:last-child{border-right:0}.chip:hover{color:var(--ink)}
+.chip::before{margin-right:6px;color:var(--accent);font-weight:600}
+.chip:nth-child(1)::before{content:"!"}.chip:nth-child(2)::before{content:"↗"}.chip:nth-child(3)::before{content:"%"}.chip:nth-child(4)::before{content:"?"}
+.chat{background:#fff;border-top:1px solid var(--line);box-shadow:none}
+#reply{background:#fff;border:1px solid var(--line);border-left:3px solid var(--accent)}
+.send{gap:0;align-items:center;border:1px solid var(--line);background:#fff;padding:4px 4px 4px 10px}
+.send:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,70,229,.12)}
+.send input{border:0;background:transparent;padding:8px 6px;outline:none}
+kbd{font:500 11px "Fira Code",ui-monospace,monospace;color:var(--muted);border:1px solid var(--line);padding:2px 6px;background:#f8fafc}
+.send .btn{padding:8px 16px;font-size:13px}
+</style>
+</head>
+<body>
+<main>
+<div class="hdr">
+  <div><h1 id="hello">Good morning, Sarah</h1><p class="sub">Here’s what your ingredient costs are doing to your margins.</p></div>
+  <div class="tags"><span class="tag">Synthetic demo data</span><span class="tag" id="plan">Free plan</span>
+    <button class="gear" id="gear" type="button" aria-label="AI model settings" aria-expanded="false">⚙</button></div>
+  <div class="dev" id="dev"><h3>AI model</h3><p>Choose which OpenRouter model reads the chat.</p><div id="models"></div></div>
+</div>
+
+<section id="queue" style="display:none"><button class="qbtn" id="qbtn" type="button"></button><div id="qlist"></div></section>
+
+<div class="kpis" id="kpis"></div>
+
+<h2>Needs attention</h2>
+<div id="feed"></div>
+
+<h2 id="paneT">Your products</h2>
+<p class="legend">Bar: margin. Dashed line: margin today (in a scenario). Dark tick: your target.</p>
+<div id="pane"></div>
+
+<div class="card pro"><div><b>MarginGuard Pro, €4.99/month</b><br><span class="sub">3- and 6-month scenarios, every product ranked by risk, 50 AI requests a month. Your free diagnosis always stays visible.</span></div>
+<div><button class="btn" id="buy" type="button">Upgrade to Pro</button><div class="sub" id="buynote" style="display:none;font-size:13px;margin-top:6px">Stripe Checkout opens here. Pro unlocks only after the server confirms payment.</div></div></div>
+
+<p class="foot">All data is fictional. Costs are recorded unit costs with VAT excluded. Margin is profit as a share of price, not markup. A target-margin price is not a prediction of what customers will accept. Scenarios are “what if” tests, not forecasts.</p>
+</main>
+
+<div class="chat"><div>
+  <div id="reply" aria-live="polite"></div>
+  <div class="chips">
+    <button class="chip" type="button">What needs attention today?</button>
+    <button class="chip" type="button">If chocolate rises 15%, which bakes need repricing?</button>
+    <button class="chip" type="button">What if butter goes up 12% in 6 months?</button>
+    <button class="chip" type="button">What if it doubles?</button>
+  </div>
+  <div class="send"><kbd>⌘K</kbd><input id="msg" type="text" placeholder="Ask a question or run a what-if…" aria-label="Ask MarginGuard"><button class="btn" id="send" type="button">Send</button></div>
+</div></div>
+
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const eur=n=>'€'+n.toFixed(2),pct=n=>(n*100).toFixed(1)+'%';
+const P=[
+ {n:'Chocolate Brownies',price:3.25,t:.5,l:{chocolate:.62,butter:.30,sugar:.12,flour:.08,eggs:.20,'labour & packaging':.335}},
+ {n:'Chocolate Chip Cookies',price:2.45,t:.55,l:{chocolate:.22,butter:.20,sugar:.08,flour:.10,'labour & packaging':.47}},
+ {n:'Vanilla Cupcakes',price:3.40,t:.55,l:{butter:.35,sugar:.15,flour:.15,eggs:.25,vanilla:.10,'labour & packaging':.853}},
+ {n:'Banana Loaf Slices',price:2.95,t:.5,l:{banana:.45,butter:.20,sugar:.10,flour:.15,eggs:.20,'labour & packaging':.61}}];
+const NAMES=['chocolate','butter','sugar','flour','eggs','banana','vanilla'];
+const cost=(p,adj={})=>Object.entries(p.l).reduce((s,[k,v])=>s+v*(1+(adj[k]||0)),0);
+const mar=(p,c)=>(p.price-c)/p.price;
+const minP=(c,t)=>Math.ceil(c/(1-t)*100-1e-9)/100;
+const below=(p,adj)=>mar(p,cost(p,adj))<p.t-1e-9;
+const w=m=>Math.max(0,Math.min(100,m/.7*100));
+
+const h=new Date().getHours();$('hello').textContent=(h<12?'Good morning':h<18?'Good afternoon':'Good evening')+', Sarah';
+
+function kpis(){
+ const bad=P.filter(p=>below(p)),gap=Math.max(...P.map(p=>p.t-mar(p,cost(p))));
+ const worst=P.reduce((a,p)=>p.t-mar(p,cost(p))>a.t-mar(a,cost(a))?p:a);
+ $('kpis').innerHTML=`<div class="kpi"><span class="k">Below target</span><b>${bad.length} of ${P.length}</b><div class="seg">${P.map(p=>`<i class="${below(p)?'on':''}"></i>`).join('')}</div><span class="s">products under their margin target</span></div>
+ <div class="kpi"><span class="k">Largest gap</span><b>${(gap*100).toFixed(1)} pts</b><div class="track" style="margin:0"><div class="fill bad" style="width:${w(mar(worst,cost(worst)))}%"></div><div class="tick" style="left:${w(worst.t)}%"></div></div><span class="s">${esc(worst.n)}: ${pct(mar(worst,cost(worst)))} vs ${(worst.t*100).toFixed(0)}% target</span></div>
+ <div class="kpi"><span class="k">Est. sales revenue, Sept</span><b>€2,330.95 <em class="up">▲ ${((2330.95/2236.5-1)*100).toFixed(1)}%</em></b><span class="s">vs August (placeholder, synthetic). Revenue, not cash.</span></div>`;
+}
+function feed(){
+ const items=P.map((p,i)=>({p,i,m:mar(p,cost(p))})).filter(x=>below(x.p)).sort((a,b)=>(a.m-a.p.t)-(b.m-b.p.t));
+ $('feed').innerHTML=items.map(x=>`<div class="card feed"><p><b>${esc(x.p.n)}</b> is ${((x.p.t-x.m)*100).toFixed(1)} points below its ${(x.p.t*100).toFixed(0)}% target (${pct(x.m)} now). Charge at least <b>${eur(minP(cost(x.p),x.p.t))}</b>; it is ${eur(x.p.price)} today.</p><button class="link" data-p="${x.i}" type="button">See cost breakdown</button></div>`).join('')||'<div class="card">Every product meets its target margin.</div>';
+}
+function pane(adj,title){
+ $('paneT').textContent=title||'Your products';
+ $('pane').innerHTML=P.map(p=>{
+  const c0=cost(p),c1=cost(p,adj),m0=mar(p,c0),m1=mar(p,c1),b=below(p,adj),aff=adj&&Object.keys(adj).some(k=>p.l[k]);
+  return `<div class="card"><div class="top"><h3>${esc(p.n)}</h3><span class="badge ${b?'bad':'ok'}">${b?'Below target':'On target'}</span></div>
+  <div class="track"><div class="fill ${b?'bad':'ok'}" style="width:${w(m1)}%"></div>${adj?`<div class="was" style="left:${w(m0)}%"></div>`:''}<div class="tick" style="left:${w(p.t)}%"></div></div>
+  <div class="facts"><span>Margin <b>${adj&&aff?pct(m0)+' → '+pct(m1):pct(m1)}</b></span><span>Unit cost <b>${adj&&aff?eur(c0)+' → '+eur(c1):eur(c1)}</b></span><span>Price <b>${eur(p.price)}</b></span><span>Target ${(p.t*100).toFixed(0)}% needs <b>${eur(minP(c1,p.t))}</b></span>${adj&&!aff?'<span>Not affected</span>':''}</div></div>`}).join('');
+}
+function breakdown(i){
+ const p=P[i],c=cost(p);$('paneT').textContent=p.n+': where the cost comes from';
+ $('pane').innerHTML=`<div class="card">${Object.entries(p.l).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="top"><span>${esc(k[0].toUpperCase()+k.slice(1))}</span><b>${eur(v)} <span class="sub">(${(v/c*100).toFixed(0)}%)</span></b></div>`).join('')}
+ <div class="top" style="border-top:1px solid var(--line);margin-top:8px;padding-top:8px"><b>Unit cost</b><b>${eur(c)}</b></div><button class="link" id="back" type="button" style="margin-top:10px">Back to all products</button></div>`;
+ $('back').onclick=()=>pane();$('pane').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+const MODELS=[['Claude Sonnet 5.5','anthropic/claude-sonnet-5-5'],['Claude Haiku 5.5','anthropic/claude-haiku-5-5'],['GPT-4o mini','openai/gpt-4o-mini'],['Gemini 2.0 Flash','google/gemini-2.0-flash-001'],['Llama 3.3 70B','meta-llama/llama-3.3-70b-instruct']];
+let model=MODELS[0][1];
+$('models').innerHTML=MODELS.map((m,i)=>`<label><input type="radio" name="model" value="${m[1]}" ${i?'':'checked'}><span>${m[0]}<code>${m[1]}</code></span></label>`).join('');
+$('models').addEventListener('change',e=>{model=e.target.value});
+$('gear').onclick=()=>{const o=$('dev').classList.toggle('open');$('gear').setAttribute('aria-expanded',o)};
+
+function say(t){const r=$('reply');r.style.display='block';r.innerHTML=t+`<small>Mock reply from fixed rules. Selected model: ${esc(model)}. In the real app the model picks the intent and the backend does the maths.</small>`}
+function ask(text){
+ const t=text.toLowerCase().trim();if(!t)return;
+ const k=NAMES.find(n=>t.includes(n)||(n==='eggs'&&t.includes('egg')));
+ const m=t.match(/(\d+(?:\.\d+)?)\s*%/);
+ const ch=/doubl/.test(t)?1:m?parseFloat(m[1])/100*(/(down|fall|drop|cheaper|decreas)/.test(t)?-1:1):null;
+ const mo=t.match(/(\d+)\s*month/);
+ if(/attention|below|at risk|which products/.test(t)&&ch===null){
+  const b=P.filter(p=>below(p));
+  say(b.length?`${b.length} of ${P.length} products are below target: ${b.map(p=>`${esc(p.n)} (${pct(mar(p,cost(p)))}, charge at least ${eur(minP(cost(p),p.t))})`).join('; ')}.`:'Every product meets its target margin.');
+  pane();return}
+ if(ch!==null&&!k){say('Which ingredient do you mean? I can check '+NAMES.join(', ')+'. I won’t guess one that isn’t in your records.');return}
+ if(k&&ch===null){say(`By how much should I change ${k}? For example, “what if ${k} rises 15%?”`);return}
+ if(!k){say('I can’t match that to your imported records. Try “What needs attention today?” or “What if chocolate rises 15%?”');return}
+ const adj={[k]:ch},aff=P.filter(p=>p.l[k]),un=P.filter(p=>!p.l[k]);
+ pane(adj,`If ${k} ${ch>=0?'rises':'falls'} ${Math.abs(ch*100).toFixed(0)}%`);
+ const lines=aff.map(p=>`${esc(p.n)}: ${pct(mar(p,cost(p)))} → ${pct(mar(p,cost(p,adj)))}, needs ${eur(minP(cost(p,adj),p.t))} for ${(p.t*100).toFixed(0)}%`);
+ say(`${lines.join('. ')}.${un.length?` ${un.map(p=>esc(p.n)).join(' and ')} ${un.length>1?'don’t':'doesn’t'} use ${k}.`:''}${mo?` This uses today’s costs. The ${mo[1]}-month view is part of Pro.`:''}`);
+ $('pane').scrollIntoView({behavior:'smooth',block:'start'});
+}
+$('send').onclick=()=>ask($('msg').value);
+$('msg').addEventListener('keydown',e=>{if(e.key==='Enter')ask($('msg').value)});
+document.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{$('msg').value=c.textContent;ask(c.textContent)});
+$('feed').addEventListener('click',e=>{const b=e.target.closest('button[data-p]');if(b)breakdown(+b.dataset.p)});
+$('buy').onclick=()=>{$('buynote').style.display='block'};
+document.addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key==='k'){e.preventDefault();$('msg').focus()}});
+
+let qOpen=true;
+const queue=[
+ {id:1,row:'Row 14: Free range doz, €3.60',ask:'Is this eggs?',opts:[['Yes, eggs','Treated as eggs at €0.30 each.'],['No, something else','Left out of the calculations.']]},
+ {id:2,row:'Row 22: Cocoa 1kg, €11.50',ask:'Is this the same as your chocolate?',opts:[['Yes, same as chocolate','Grouped with chocolate.'],['No, separate ingredient','Kept as its own ingredient.']]}];
+function drawQ(){
+ const n=queue.filter(x=>!x.done).length,b=$('qbtn');
+ $('queue').style.display='block';b.className='qhead'+(n?'':' clear');
+ b.innerHTML='<b>Action items</b><span class="cnt">'+(n?n+' pending':'All resolved')+'</span><span>'+(qOpen?'▾':'▸')+'</span>';
+ $('qlist').style.display=qOpen?'block':'none';
+ $('qlist').innerHTML=queue.map(x=>x.done?`<div class="row done"><code class="r">${esc(x.row)}</code><span>${esc(x.done)}</span></div>`
+  :`<div class="row"><div><code class="r">${esc(x.row)}</code><div class="ask">${esc(x.ask)}</div></div><div class="act">${x.opts.map((o,i)=>`<button type="button" class="${i?'no':'yes'}" data-q="${x.id}" data-o="${i}">${esc(o[0])}</button>`).join('')}</div></div>`).join('');
+}
+$('qbtn').onclick=()=>{qOpen=!qOpen;drawQ()};
+$('qlist').addEventListener('click',e=>{const b=e.target.closest('button[data-q]');if(!b)return;
+ const x=queue.find(y=>String(y.id)===b.dataset.q);x.done=x.opts[+b.dataset.o][1];drawQ()});
+kpis();feed();pane();drawQ();
+</script>
+</body>
+</html>

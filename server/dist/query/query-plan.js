@@ -88,8 +88,7 @@ export function validateQueryPlan(value) {
         return { ok: false, errors: ['query plan must be a JSON object'] };
     }
     const raw = value;
-    if (raw.entity !== 'transactions' &&
-        raw.entity !== 'productPrices') {
+    if (raw.entity !== 'transactions' && raw.entity !== 'productPrices') {
         return {
             ok: false,
             errors: ["entity must be 'transactions' or 'productPrices'"],
@@ -152,7 +151,10 @@ export function validateQueryPlan(value) {
     }
     const limit = raw.limit;
     if (limit !== undefined && limit !== null) {
-        if (typeof limit !== 'number' || !Number.isInteger(limit) || limit < 1 || limit > 200) {
+        if (typeof limit !== 'number' ||
+            !Number.isInteger(limit) ||
+            limit < 1 ||
+            limit > 200) {
             errors.push('limit must be an integer between 1 and 200');
         }
         else {
@@ -229,7 +231,7 @@ export function planSystemPrompt(now) {
         '- Spending/expense questions → entity transactions; "how much did I spend on groceries last month" → ' +
         'categoryNames ["groceries"] plus the last-month date range, aggregation sum.\n' +
         '- Relative ranges ("last month", "this week", "this year") must be resolved to concrete ' +
-        'dateFrom/dateTo from today\'s date.\n' +
+        "dateFrom/dateTo from today's date.\n" +
         '- Price-tracking questions ("what does bread cost", "cheapest price for X") → entity productPrices.\n\n' +
         `${AGGREGATION_HINT}\n` +
         'Rules:\n' +
@@ -238,7 +240,7 @@ export function planSystemPrompt(now) {
         '- Month-by-month bucketing is not supported; if asked, use an overall aggregate or groupBy.\n' +
         'Respond with only the JSON object.');
 }
-export const ANSWER_SYSTEM_PROMPT = 'You answer the user\'s financial question using ONLY the JSON query result provided. ' +
+export const ANSWER_SYSTEM_PROMPT = "You answer the user's financial question using ONLY the JSON query result provided. " +
     'Answer in 1–2 sentences. Amounts are integer cents; present them in major units (divide by 100, ' +
     'two decimals). Negative totals are expenses — say "spent". If the result is empty, say no matching ' +
     'records were found. Never invent numbers not present in the result.';

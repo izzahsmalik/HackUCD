@@ -123,7 +123,9 @@ let QueryExecutor = class QueryExecutor {
             };
             if (plan.groupBy) {
                 result.groups = computeGroups(all.map((row) => ({
-                    key: plan.groupBy === 'product' ? row.product.name : row.product.brand.name,
+                    key: plan.groupBy === 'product'
+                        ? row.product.name
+                        : row.product.brand.name,
                     amountCents: row.amount,
                 })));
             }

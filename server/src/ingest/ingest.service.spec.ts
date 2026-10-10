@@ -103,3 +103,84 @@ describe('IngestService', () => {
     expect(summary.files).toHaveLength(1);
   });
 });
+
+describe('IngestService.ingestCsv', () => {
+  it('classifies in-memory text and dispatches to the right ingest service', async () => {
+    const { service, transactionsIngest, productsIngest } = makeService(
+      vi.fn().mockResolvedValue('transactions'),
+    );
+
+    const summary = await service.ingestCsv(
+      'bank.csv',
+      'date,amount\n2026-01-01,-4.50\n',
+    );
+
+    expect(summary.files).toHaveLength(1);
+    expect(summary.files[0]).toMatchObject({
+      fileName: 'bank.csv',
+      kind: 'transactions',
+      rowsTotal: 1,
+      rowsPersisted: 2,
+    });
+    expect(transactionsIngest.ingest).toHaveBeenCalledWith('bank.csv', [
+      { date: '2026-01-01', amount: '-4.50' },
+    ]);
+    expect(productsIngest.ingest).not.toHaveBeenCalled();
+  });
+
+  it('reports an unclassifiable file in the summary', async () => {
+    const { service, transactionsIngest } = makeService(
+      vi.fn().mockResolvedValue(null),
+    );
+
+    const summary = await service.ingestCsv('mystery.csv', 'a,b\n1,2\n');
+
+    expect(summary.files[0].errors).toEqual([
+      'could not determine whether the file is transactions or product pricing',
+    ]);
+    expect(summary.files[0].kind).toBeNull();
+    expect(transactionsIngest.ingest).not.toHaveBeenCalled();
+  });
+
+  it('reports a parse failure in the summary instead of throwing', async () => {
+    const { service, transactionsIngest } = makeService(vi.fn());
+
+    const summary = await service.ingestCsv('bad.csv', 'a,b\n"x,2\n');
+
+    expect(summary.files[0].rowsTotal).toBe(0);
+    expect(summary.files[0].errors[0]).toContain('Failed to parse bad.csv');
+    expect(transactionsIngest.ingest).not.toHaveBeenCalled();
+  });
+
+  it('shares the overlap guard with run() and releases it afterwards', async () => {
+    let release!: (kind: FileKind | null) => void;
+    const gate = new Promise<FileKind | null>((resolve) => (release = resolve));
+    const classify = vi.fn().mockReturnValue(gate);
+    const { service, transactionsIngest } = makeService(classify);
+
+    const inFlight = service.ingestCsv('bank.csv', 'date,amount\n');
+    await expect(
+      service.ingestCsv('other.csv', 'date,amount\n'),
+    ).rejects.toThrow(ConflictException);
+    await expect(service.run('/nonexistent')).rejects.toThrow(
+      ConflictException,
+    );
+    release('transactions');
+    await inFlight;
+
+    // The flag is released once the run finishes, so the next call proceeds.
+    classify.mockResolvedValue('transactions');
+    await service.ingestCsv('again.csv', 'date,amount\n');
+    expect(transactionsIngest.ingest).toHaveBeenCalledTimes(2);
+  });
+
+  it('releases the overlap guard when the ingest fails', async () => {
+    const classify = vi.fn().mockRejectedValue(new Error('boom'));
+    const { service } = makeService(classify);
+
+    await service.ingestCsv('bank.csv', 'date,amount\n');
+
+    const summary = await service.ingestCsv('again.csv', 'date,amount\n');
+    expect(summary.files[0].errors).toContain('Error: boom');
+  });
+});
