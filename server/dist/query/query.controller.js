@@ -10,7 +10,8 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
-import { BadRequestException, Body, Controller, Post } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Post, UseGuards, } from '@nestjs/common';
+import { PremiumGuard } from '../payments/premium.guard.js';
 import { QueryService } from './query.service.js';
 let QueryController = class QueryController {
     queryService;
@@ -18,26 +19,29 @@ let QueryController = class QueryController {
         this.queryService = queryService;
     }
     ask(dto) {
+        const model = validateModel(dto);
         if (dto === null ||
             typeof dto !== 'object' ||
             typeof dto.question !== 'string' ||
             dto.question.trim().length === 0) {
             throw new BadRequestException('question must be a non-empty string');
         }
-        return this.queryService.ask(dto.question);
+        return this.queryService.ask(dto.question, model);
     }
     plan(dto) {
+        const model = validateModel(dto);
         if (dto === null ||
             typeof dto !== 'object' ||
             typeof dto.question !== 'string' ||
             dto.question.trim().length === 0) {
             throw new BadRequestException('question must be a non-empty string');
         }
-        return this.queryService.planOnly(dto.question);
+        return this.queryService.planOnly(dto.question, model);
     }
 };
 __decorate([
     Post(),
+    UseGuards(PremiumGuard),
     __param(0, Body()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
@@ -55,4 +59,15 @@ QueryController = __decorate([
     __metadata("design:paramtypes", [QueryService])
 ], QueryController);
 export { QueryController };
+function validateModel(dto) {
+    if (dto === null || typeof dto !== 'object' || dto.model === undefined) {
+        return undefined;
+    }
+    if (typeof dto.model !== 'string' ||
+        dto.model.trim().length === 0 ||
+        dto.model.length > 200) {
+        throw new BadRequestException('model must be a non-empty string of at most 200 characters when provided');
+    }
+    return dto.model.trim();
+}
 //# sourceMappingURL=query.controller.js.map

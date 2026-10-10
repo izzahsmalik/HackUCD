@@ -3,3 +3,7 @@ export interface CreateProductDto {
     brandId: number;
 }
 export type UpdateProductDto = Partial<CreateProductDto>;
+export interface CreateProductPriceDto {
+    amount: number;
+    setAt?: string;
+}

@@ -29,6 +29,9 @@ let ProductsController = class ProductsController {
     create(dto) {
         return this.productsService.create(dto);
     }
+    createPrice(id, dto) {
+        return this.productsService.createPrice(id, dto);
+    }
     update(id, dto) {
         return this.productsService.update(id, dto);
     }
@@ -63,6 +66,14 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], ProductsController.prototype, "create", null);
+__decorate([
+    Post(':id/prices'),
+    __param(0, Param('id', ParseIntPipe)),
+    __param(1, Body()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Object]),
+    __metadata("design:returntype", void 0)
+], ProductsController.prototype, "createPrice", null);
 __decorate([
     Patch(':id'),
     __param(0, Param('id', ParseIntPipe)),

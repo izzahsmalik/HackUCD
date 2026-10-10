@@ -2,6 +2,7 @@ import { AskResponse, QueryService } from './query.service.js';
 import { QueryPlan } from './query-plan.js';
 export interface AskQuestionDto {
     question: string;
+    model?: string;
 }
 export declare class QueryController {
     private readonly queryService;

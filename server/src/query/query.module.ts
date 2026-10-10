@@ -7,6 +7,7 @@ import { Transaction } from '../transactions/transaction.entity.js';
 import { TransactionCategory } from '../transactions/transaction-category.entity.js';
 import { TransactionGroup } from '../transactions/transaction-group.entity.js';
 import { LlmModule } from '../llm/llm.module.js';
+import { PaymentsModule } from '../payments/payments.module.js';
 import { QueryController } from './query.controller.js';
 import { QueryExecutor } from './query-executor.js';
 import { QueryService } from './query.service.js';
@@ -24,6 +25,8 @@ import { QueryService } from './query.service.js';
       Brand,
     ]),
     LlmModule,
+    // Provides PremiumGuard for the Pro-gated ask route.
+    PaymentsModule,
   ],
   controllers: [QueryController],
   providers: [QueryExecutor, QueryService],

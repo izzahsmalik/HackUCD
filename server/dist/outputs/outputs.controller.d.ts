@@ -4,6 +4,7 @@ export declare class OutputsController {
     private readonly outputsService;
     constructor(outputsService: OutputsService);
     findAll(): Promise<import("./output.entity.js").Output[]>;
+    findMargins(): Promise<import("./outputs.service.js").OutputMarginRow[]>;
     findOne(id: number): Promise<import("./output.entity.js").Output>;
     findPrices(id: number): Promise<import("./output-price.entity.js").OutputPrice[]>;
     findCost(id: number): Promise<import("./outputs.service.js").OutputCost>;

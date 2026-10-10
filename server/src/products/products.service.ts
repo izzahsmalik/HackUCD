@@ -8,7 +8,11 @@ import { InjectRepository } from '@mikro-orm/nestjs';
 import { Brand } from '../brands/brand.entity.js';
 import { Product } from './product.entity.js';
 import { ProductPrice } from './product-price.entity.js';
-import type { CreateProductDto, UpdateProductDto } from './dto/product.dto.js';
+import type {
+  CreateProductDto,
+  CreateProductPriceDto,
+  UpdateProductDto,
+} from './dto/product.dto.js';
 
 @Injectable()
 export class ProductsService {
@@ -69,6 +73,28 @@ export class ProductsService {
       { product },
       { orderBy: { setAt: 'desc' } },
     );
+  }
+
+  /** Records a new product price, defaulting setAt to now. */
+  async createPrice(
+    id: number,
+    dto: CreateProductPriceDto,
+  ): Promise<ProductPrice> {
+    if (!Number.isInteger(dto.amount) || dto.amount < 0) {
+      throw new BadRequestException('amount must be an integer >= 0 (cents)');
+    }
+    const setAt = dto.setAt === undefined ? new Date() : new Date(dto.setAt);
+    if (Number.isNaN(setAt.getTime())) {
+      throw new BadRequestException('setAt must be a valid datetime');
+    }
+    const product = await this.findOne(id);
+    const price = this.productPriceRepository.create({
+      amount: dto.amount,
+      setAt,
+      product,
+    });
+    await this.productPriceRepository.getEntityManager().persist(price).flush();
+    return price;
   }
 
   private async brandOrThrow(brandId: number): Promise<Brand> {

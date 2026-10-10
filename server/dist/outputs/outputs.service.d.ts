@@ -13,8 +13,16 @@ export interface LatestProductPrice {
 export interface OutputCost {
     outputId: number;
     productTotalCents: number;
-    latestOutputPriceCents: number;
-    totalCents: number;
+    salePriceCents: number | null;
+    margin: number | null;
+    latestProductPrices: LatestProductPrice[];
+}
+export interface OutputMarginRow {
+    outputId: number;
+    name: string;
+    productCostCents: number;
+    salePriceCents: number | null;
+    margin: number | null;
     latestProductPrices: LatestProductPrice[];
 }
 export declare class OutputsService {
@@ -31,6 +39,7 @@ export declare class OutputsService {
     getPriceHistory(id: number): Promise<OutputPrice[]>;
     createPrice(id: number, dto: CreateOutputPriceDto): Promise<OutputPrice>;
     getCost(id: number): Promise<OutputCost>;
+    getMargins(): Promise<OutputMarginRow[]>;
     private validateName;
     private productsOrThrow;
 }

@@ -20,6 +20,9 @@ let OutputsController = class OutputsController {
     findAll() {
         return this.outputsService.findAll();
     }
+    findMargins() {
+        return this.outputsService.getMargins();
+    }
     findOne(id) {
         return this.outputsService.findOne(id);
     }
@@ -48,6 +51,12 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
 ], OutputsController.prototype, "findAll", null);
+__decorate([
+    Get('margins'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], OutputsController.prototype, "findMargins", null);
 __decorate([
     Get(':id'),
     __param(0, Param('id', ParseIntPipe)),

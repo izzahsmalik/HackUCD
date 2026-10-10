@@ -24,6 +24,12 @@ export class OutputsController {
     return this.outputsService.findAll();
   }
 
+  // Declared above @Get(':id') so Nest does not match "margins" as an id.
+  @Get('margins')
+  findMargins() {
+    return this.outputsService.getMargins();
+  }
+
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.outputsService.findOne(id);

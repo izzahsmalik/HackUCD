@@ -8,6 +8,7 @@ import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { ActionQueueService } from '../action-queue/action-queue.service.js';
 import { IngestService } from '../ingest/ingest.service.js';
 import { IngestRunSummary } from '../ingest/ingest-result.js';
+import { OutputsService } from '../outputs/outputs.service.js';
 import { QueryService } from '../query/query.service.js';
 import { McpServerFactory } from './mcp-server.factory.js';
 
@@ -31,11 +32,13 @@ async function connect(
   ingestService: IngestService,
   queryService: QueryService = {} as QueryService,
   actionQueueService: ActionQueueService = new ActionQueueService(),
+  outputsService: OutputsService = {} as OutputsService,
 ) {
   const server = new McpServerFactory(
     ingestService,
     queryService,
     actionQueueService,
+    outputsService,
   ).create();
   const client = new Client({ name: 'test', version: '0.0.1' });
   // The SDK types createLinkedPair() as sync, but it returns a Promise at
@@ -154,6 +157,58 @@ describe('McpServerFactory', () => {
 
     expect(result.isError).toBe(true);
     expect(textOf(result as never)).toMatch(/could not be turned into a valid query/);
+  });
+
+  it('returns the output cost breakdown as JSON text', async () => {
+    const cost = {
+      outputId: 3,
+      productTotalCents: 750,
+      salePriceCents: 900,
+      margin: 900 - 750 / 900,
+      latestProductPrices: [
+        {
+          productId: 1,
+          productName: 'Coffee',
+          amountCents: 450,
+          setAt: '2026-02-01T00:00:00.000Z',
+        },
+      ],
+    };
+    const getCost = vi.fn().mockResolvedValue(cost);
+    const { client } = await connect(
+      {} as IngestService,
+      {} as QueryService,
+      new ActionQueueService(),
+      { getCost } as unknown as OutputsService,
+    );
+
+    const result = await client.callTool({
+      name: 'get_output_cost',
+      arguments: { outputId: 3 },
+    });
+
+    expect(getCost).toHaveBeenCalledWith(3);
+    expect(result.isError).toBeUndefined();
+    expect(JSON.parse(textOf(result as never))).toEqual(cost);
+  });
+
+  it('reports an unknown output as an error result, not a throw', async () => {
+    const getCost = vi
+      .fn()
+      .mockRejectedValue(new NotFoundException('Output #99 not found'));
+    const { client } = await connect(
+      {} as IngestService,
+      {} as QueryService,
+      new ActionQueueService(),
+      { getCost } as unknown as OutputsService,
+    );
+
+    const result = await client.callTool({
+      name: 'get_output_cost',
+      arguments: { outputId: 99 },
+    });
+
+    expect(result.isError).toBe(true);
   });
 });
 

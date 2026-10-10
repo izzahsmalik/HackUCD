@@ -22,12 +22,26 @@ export interface LatestProductPrice {
   setAt: Date;
 }
 
-/** Cost breakdown for an output: its products' latest prices plus its own. */
+/**
+ * Cost breakdown for an output: the latest product prices (the cost side)
+ * plus the latest output price, which is what the output sells for.
+ */
 export interface OutputCost {
   outputId: number;
   productTotalCents: number;
-  latestOutputPriceCents: number;
-  totalCents: number;
+  salePriceCents: number | null;
+  /** (salePrice − productTotal) / salePrice; null when unpriced or free. */
+  margin: number | null;
+  latestProductPrices: LatestProductPrice[];
+}
+
+/** One row of the batched margins view for all outputs. */
+export interface OutputMarginRow {
+  outputId: number;
+  name: string;
+  productCostCents: number;
+  salePriceCents: number | null;
+  margin: number | null;
   latestProductPrices: LatestProductPrice[];
 }
 
@@ -107,8 +121,8 @@ export class OutputsService {
   }
 
   /**
-   * Cost of the output: the latest ProductPrice for each dependent product
-   * plus the latest OutputPrice for the output itself.
+   * Cost of the output: the latest ProductPrice for each dependent product,
+   * with the latest OutputPrice as the sale price and the resulting margin.
    */
   async getCost(id: number): Promise<OutputCost> {
     const output = await this.findOne(id);
@@ -127,31 +141,78 @@ export class OutputsService {
       { orderBy: { setAt: 'desc' } },
     );
 
-    // Prices are ordered setAt desc, so the first row seen per product is the latest.
-    const seen = new Set<number>();
-    const latestProductPrices: LatestProductPrice[] = [];
-    let productTotalCents = 0;
-    for (const price of productPrices) {
-      if (seen.has(price.product.id)) continue;
-      seen.add(price.product.id);
-      productTotalCents += price.amount;
-      latestProductPrices.push({
-        productId: price.product.id,
-        productName: price.product.name,
-        amountCents: price.amount,
-        setAt: price.setAt,
-      });
-    }
+    const { latestProductPrices, productTotalCents } =
+      latestPerProduct(productPrices);
 
-    const latestOutputPrice = outputPrices[0];
-    const latestOutputPriceCents = latestOutputPrice?.amount ?? 0;
+    const salePriceCents = outputPrices[0]?.amount ?? null;
     return {
       outputId: id,
       productTotalCents,
-      latestOutputPriceCents,
-      totalCents: productTotalCents + latestOutputPriceCents,
+      salePriceCents,
+      margin: marginOf(productTotalCents, salePriceCents),
       latestProductPrices,
     };
+  }
+
+  /**
+   * Margins for every output in a fixed number of queries: one findAll plus
+   * one batched price query per side. Backs GET /outputs/margins.
+   */
+  async getMargins(): Promise<OutputMarginRow[]> {
+    const outputs = await this.findAll();
+    if (outputs.length === 0) return [];
+
+    const productIds = [
+      ...new Set(
+        outputs.flatMap((output) =>
+          output.products.getItems().map((product) => product.id),
+        ),
+      ),
+    ];
+    const productPrices: ProductPrice[] = productIds.length
+      ? await this.productPriceRepository.find(
+          { product: { id: { $in: productIds } } },
+          { orderBy: { setAt: 'desc' } },
+        )
+      : [];
+    const outputPrices: OutputPrice[] = await this.outputPriceRepository.find(
+      { output: { id: { $in: outputs.map((output) => output.id) } } },
+      { orderBy: { setAt: 'desc' } },
+    );
+
+    const { latestProductPrices, productTotalByProduct } =
+      latestPerProduct(productPrices);
+    const productTotals = new Map<number, number>();
+    for (const [productId, total] of productTotalByProduct) {
+      productTotals.set(productId, total);
+    }
+
+    // OutputPrice rows are also ordered setAt desc: first row per output wins.
+    const salePriceByOutput = new Map<number, number>();
+    for (const price of outputPrices) {
+      if (salePriceByOutput.has(price.output.id)) continue;
+      salePriceByOutput.set(price.output.id, price.amount);
+    }
+
+    return outputs.map((output) => {
+      const productCostCents = output.products
+        .getItems()
+        .reduce(
+          (sum, product) => sum + (productTotals.get(product.id) ?? 0),
+          0,
+        );
+      const salePriceCents = salePriceByOutput.get(output.id) ?? null;
+      return {
+        outputId: output.id,
+        name: output.name,
+        productCostCents,
+        salePriceCents,
+        margin: marginOf(productCostCents, salePriceCents),
+        latestProductPrices: latestProductPrices.filter((price) =>
+          output.products.getItems().some((product) => product.id === price.productId),
+        ),
+      };
+    });
   }
 
   private validateName(name: string): void {
@@ -182,4 +243,43 @@ export class OutputsService {
     }
     return products;
   }
+}
+
+/**
+ * Prices are ordered setAt desc, so the first row seen per product is the
+ * latest. Returns the deduped breakdown plus totals by product and overall.
+ */
+function latestPerProduct(productPrices: ProductPrice[]): {
+  latestProductPrices: LatestProductPrice[];
+  productTotalCents: number;
+  productTotalByProduct: Map<number, number>;
+} {
+  const seen = new Set<number>();
+  const latestProductPrices: LatestProductPrice[] = [];
+  const productTotalByProduct = new Map<number, number>();
+  for (const price of productPrices) {
+    if (seen.has(price.product.id)) continue;
+    seen.add(price.product.id);
+    productTotalByProduct.set(price.product.id, price.amount);
+    latestProductPrices.push({
+      productId: price.product.id,
+      productName: price.product.name,
+      amountCents: price.amount,
+      setAt: price.setAt,
+    });
+  }
+  const productTotalCents = [...productTotalByProduct.values()].reduce(
+    (sum, amount) => sum + amount,
+    0,
+  );
+  return { latestProductPrices, productTotalCents, productTotalByProduct };
+}
+
+/** Margin as a share of the sale price; null when unpriced or free. */
+function marginOf(
+  productTotalCents: number,
+  salePriceCents: number | null,
+): number | null {
+  if (salePriceCents === null || salePriceCents <= 0) return null;
+  return (salePriceCents - productTotalCents) / salePriceCents;
 }

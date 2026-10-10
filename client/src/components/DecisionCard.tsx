@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { resolveDecision } from '../api/actionQueue'
+import { eur } from '../lib/format'
 import {
   isProductDecision,
   isTransactionDecision,
@@ -23,8 +24,6 @@ interface Props {
   /** The decision was resolved (or vanished) and should leave the list. */
   onGone: (id: number) => void
 }
-
-const eur = (cents: number) => `€${(cents / 100).toFixed(2)}`
 
 export function DecisionCard({
   decision,

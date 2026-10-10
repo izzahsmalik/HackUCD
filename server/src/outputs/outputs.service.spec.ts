@@ -300,7 +300,7 @@ describe('OutputsService', () => {
   });
 
   describe('getCost', () => {
-    it('sums the latest price per product plus the latest output price', async () => {
+    it('sums the latest price per product and reports the sale price and margin', async () => {
       const output = {
         id: 1,
         name: 'Latte',
@@ -328,8 +328,8 @@ describe('OutputsService', () => {
         { orderBy: { setAt: 'desc' } },
       );
       expect(cost.productTotalCents).toBe(750); // 450 + 300, older 500 ignored
-      expect(cost.latestOutputPriceCents).toBe(199);
-      expect(cost.totalCents).toBe(949);
+      expect(cost.salePriceCents).toBe(199); // latest output price = sale price
+      expect(cost.margin).toBeCloseTo((199 - 750) / 199);
       expect(cost.latestProductPrices).toEqual([
         {
           productId: 1,
@@ -346,7 +346,7 @@ describe('OutputsService', () => {
       ]);
     });
 
-    it('returns zero totals for an output with no products and no prices', async () => {
+    it('returns null sale price and margin for an output with no products and no prices', async () => {
       outputRepository.findOne.mockResolvedValue({
         id: 2,
         name: 'Plain',
@@ -357,13 +357,13 @@ describe('OutputsService', () => {
       expect(cost).toEqual({
         outputId: 2,
         productTotalCents: 0,
-        latestOutputPriceCents: 0,
-        totalCents: 0,
+        salePriceCents: null,
+        margin: null,
         latestProductPrices: [],
       });
     });
 
-    it('treats a missing output price as 0', async () => {
+    it('treats a missing output price as null margin, not a zero sale price', async () => {
       outputRepository.findOne.mockResolvedValue({
         id: 1,
         name: 'Latte',
@@ -374,13 +374,108 @@ describe('OutputsService', () => {
       ]);
       outputPriceRepository.find.mockResolvedValue([]);
       const cost = await service.getCost(1);
-      expect(cost.totalCents).toBe(450);
-      expect(cost.latestOutputPriceCents).toBe(0);
+      expect(cost.productTotalCents).toBe(450);
+      expect(cost.salePriceCents).toBeNull();
+      expect(cost.margin).toBeNull();
     });
 
     it('throws NotFoundException for an unknown id', async () => {
       outputRepository.findOne.mockResolvedValue(null);
       await expect(service.getCost(99)).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('getMargins', () => {
+    it('returns one row per output with batched price queries', async () => {
+      const outputs = [
+        {
+          id: 1,
+          name: 'Latte',
+          products: collectionOf([
+            { id: 1, name: 'Coffee' },
+            { id: 2, name: 'Milk' },
+          ]),
+        },
+        {
+          id: 2,
+          name: 'Espresso',
+          products: collectionOf([{ id: 1, name: 'Coffee' }]),
+        },
+      ];
+      outputRepository.findAll.mockResolvedValue(outputs);
+      productPriceRepository.find.mockResolvedValue([
+        { amount: 450, setAt: new Date('2026-02-01'), product: { id: 1, name: 'Coffee' } },
+        { amount: 300, setAt: new Date('2026-01-15'), product: { id: 2, name: 'Milk' } },
+      ]);
+      outputPriceRepository.find.mockResolvedValue([
+        { amount: 900, setAt: new Date('2026-02-01'), output: { id: 1 } },
+        { amount: 1200, setAt: new Date('2026-01-01'), output: { id: 2 } },
+      ]);
+
+      const rows = await service.getMargins();
+      expect(productPriceRepository.find).toHaveBeenCalledWith(
+        { product: { id: { $in: [1, 2] } } },
+        { orderBy: { setAt: 'desc' } },
+      );
+      expect(outputPriceRepository.find).toHaveBeenCalledWith(
+        { output: { id: { $in: [1, 2] } } },
+        { orderBy: { setAt: 'desc' } },
+      );
+      expect(rows).toHaveLength(2);
+      expect(rows[0]).toEqual({
+        outputId: 1,
+        name: 'Latte',
+        productCostCents: 750,
+        salePriceCents: 900,
+        margin: (900 - 750) / 900,
+        latestProductPrices: [
+          {
+            productId: 1,
+            productName: 'Coffee',
+            amountCents: 450,
+            setAt: new Date('2026-02-01'),
+          },
+          {
+            productId: 2,
+            productName: 'Milk',
+            amountCents: 300,
+            setAt: new Date('2026-01-15'),
+          },
+        ],
+      });
+      // Espresso shares Coffee only: cost 450, sale 1200.
+      expect(rows[1]).toMatchObject({
+        outputId: 2,
+        productCostCents: 450,
+        salePriceCents: 1200,
+      });
+    });
+
+    it('yields null sale price and margin for an unpriced output', async () => {
+      outputRepository.findAll.mockResolvedValue([
+        {
+          id: 1,
+          name: 'Latte',
+          products: collectionOf([{ id: 1, name: 'Coffee' }]),
+        },
+      ]);
+      productPriceRepository.find.mockResolvedValue([
+        { amount: 450, setAt: new Date(), product: { id: 1, name: 'Coffee' } },
+      ]);
+      outputPriceRepository.find.mockResolvedValue([]);
+      const rows = await service.getMargins();
+      expect(rows[0]).toMatchObject({
+        productCostCents: 450,
+        salePriceCents: null,
+        margin: null,
+      });
+    });
+
+    it('returns an empty array when there are no outputs', async () => {
+      outputRepository.findAll.mockResolvedValue([]);
+      await expect(service.getMargins()).resolves.toEqual([]);
+      expect(productPriceRepository.find).not.toHaveBeenCalled();
+      expect(outputPriceRepository.find).not.toHaveBeenCalled();
     });
   });
 });

@@ -101,8 +101,9 @@ let McpServerFactory = class McpServerFactory {
         }, async ({ id, actionId, payload }) => this.wrap(() => this.actionQueueService.resolve(id, actionId, payload)));
         server.registerTool('get_output_cost', {
             title: 'Get an output cost',
-            description: 'Get the cost of one output by id: the latest product price for each ' +
-                'dependent product plus the latest output price, broken down and summed.',
+            description: 'Get the cost breakdown of one output by id: the latest product price ' +
+                'for each dependent product, plus the latest sale price and the ' +
+                'resulting margin ((sale − cost) / sale; null when unpriced).',
             inputSchema: {
                 outputId: z
                     .number()

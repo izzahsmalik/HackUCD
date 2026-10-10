@@ -2,6 +2,10 @@ import { useCallback, useEffect, useState } from 'react'
 import { ApiError } from './api/client'
 import { createCheckoutSession, getPaymentStatus } from './api/payments'
 import { ActionQueuePanel } from './components/ActionQueuePanel'
+import { ChatBar } from './components/ChatBar'
+import { Dashboard } from './components/Dashboard'
+import { GreetingHeader } from './components/GreetingHeader'
+import { CHAT_MODELS } from './lib/models'
 
 type Phase = 'loading' | 'free' | 'premium' | 'error'
 
@@ -14,6 +18,7 @@ function App() {
   const [phase, setPhase] = useState<Phase>('loading')
   const [error, setError] = useState<string | null>(null)
   const [upgrading, setUpgrading] = useState(false)
+  const [model, setModel] = useState(CHAT_MODELS[0].id)
 
   const refresh = useCallback(async (poll = false) => {
     try {
@@ -78,14 +83,12 @@ function App() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-5 px-5 py-8 text-gray-100">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">MarginGuard</h1>
-        <p className="mt-1 text-sm text-gray-400">
-          Rows the importer couldn't confidently classify land here. Resolve
-          them so they enter your books.
-        </p>
-      </div>
+    <main className="mx-auto flex min-h-screen max-w-4xl flex-col gap-5 px-5 pb-48 py-8 text-gray-100">
+      <GreetingHeader
+        isPremium={phase === 'premium'}
+        model={model}
+        onModelChange={setModel}
+      />
 
       <ActionQueuePanel />
 
@@ -94,6 +97,9 @@ function App() {
       {phase === 'error' && (
         <p className="text-red-400">{error}</p>
       )}
+
+      {/* The diagnosis renders in every phase — only the chat is Pro-gated. */}
+      <Dashboard />
 
       {phase === 'premium' && (
         <div className="rounded-xl border border-emerald-700 bg-emerald-950 px-8 py-6 text-center">
@@ -127,9 +133,17 @@ function App() {
       )}
 
       <p className="text-xs text-gray-500">
-        Pending decisions live in the server's memory; they are lost when it
-        restarts. The queue refreshes every 5 seconds.
+        Costs are recorded unit costs with VAT excluded. Margin is profit as a
+        share of price, not markup. A target-margin price is not a prediction of
+        what customers will accept. Scenarios are “what if” tests, not
+        forecasts.
       </p>
+
+      <ChatBar
+        model={model}
+        isPremium={phase === 'premium'}
+        onUpgrade={upgrade}
+      />
     </main>
   )
 }

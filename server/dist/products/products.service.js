@@ -64,6 +64,23 @@ let ProductsService = class ProductsService {
         const product = await this.findOne(id);
         return this.productPriceRepository.find({ product }, { orderBy: { setAt: 'desc' } });
     }
+    async createPrice(id, dto) {
+        if (!Number.isInteger(dto.amount) || dto.amount < 0) {
+            throw new BadRequestException('amount must be an integer >= 0 (cents)');
+        }
+        const setAt = dto.setAt === undefined ? new Date() : new Date(dto.setAt);
+        if (Number.isNaN(setAt.getTime())) {
+            throw new BadRequestException('setAt must be a valid datetime');
+        }
+        const product = await this.findOne(id);
+        const price = this.productPriceRepository.create({
+            amount: dto.amount,
+            setAt,
+            product,
+        });
+        await this.productPriceRepository.getEntityManager().persist(price).flush();
+        return price;
+    }
     async brandOrThrow(brandId) {
         const brand = await this.brandRepository.findOne({ id: brandId });
         if (!brand)

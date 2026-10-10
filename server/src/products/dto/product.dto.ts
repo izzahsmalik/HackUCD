@@ -5,3 +5,10 @@ export interface CreateProductDto {
 }
 
 export type UpdateProductDto = Partial<CreateProductDto>;
+
+export interface CreateProductPriceDto {
+  /** Integer cents, >= 0 */
+  amount: number;
+  /** Optional ISO datetime; defaults to now */
+  setAt?: string;
+}

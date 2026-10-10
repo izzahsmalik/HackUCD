@@ -6,24 +6,20 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 };
 import { Module } from '@nestjs/common';
 import { LlmModel } from './llm.model.js';
+import { LlmModelFactory } from './llm.factory.js';
 let LlmModule = class LlmModule {
 };
 LlmModule = __decorate([
     Module({
         providers: [
+            LlmModelFactory,
             {
                 provide: LlmModel,
-                useFactory: () => {
-                    const apiKey = process.env.OPENROUTER_API_KEY;
-                    if (!apiKey)
-                        throw new Error('OPENROUTER_API_KEY is required for LLM calls');
-                    return new LlmModel(process.env.OPENROUTER_MODEL ?? 'microsoft/microsoft-decision-1', {
-                        apiKey,
-                    });
-                },
+                useFactory: (factory) => factory.create(),
+                inject: [LlmModelFactory],
             },
         ],
-        exports: [LlmModel],
+        exports: [LlmModel, LlmModelFactory],
     })
 ], LlmModule);
 export { LlmModule };
