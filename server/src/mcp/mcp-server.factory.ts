@@ -8,6 +8,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { ActionQueueService } from '../action-queue/action-queue.service.js';
 import { IngestService } from '../ingest/ingest.service.js';
+import { OutputsService } from '../outputs/outputs.service.js';
 import { QueryService } from '../query/query.service.js';
 import {
   QUERY_TOOL_DESCRIPTION,
@@ -29,6 +30,7 @@ export class McpServerFactory {
     private readonly ingestService: IngestService,
     private readonly queryService: QueryService,
     private readonly actionQueueService: ActionQueueService,
+    private readonly outputsService: OutputsService,
   ) {}
 
   create(): McpServer {
@@ -132,6 +134,25 @@ export class McpServerFactory {
       },
       async ({ id, actionId, payload }) =>
         this.wrap(() => this.actionQueueService.resolve(id, actionId, payload)),
+    );
+
+    server.registerTool(
+      'get_output_cost',
+      {
+        title: 'Get an output cost',
+        description:
+          'Get the cost of one output by id: the latest product price for each ' +
+          'dependent product plus the latest output price, broken down and summed.',
+        inputSchema: {
+          outputId: z
+            .number()
+            .int()
+            .positive()
+            .describe('Output id (see GET /outputs)'),
+        },
+      },
+      async ({ outputId }) =>
+        this.wrap(() => this.outputsService.getCost(outputId)),
     );
 
     return server;
