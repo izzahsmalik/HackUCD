@@ -4,7 +4,6 @@ export declare const ProductSchema: import("@mikro-orm/core").EntitySchemaWithMe
         primary: true;
     }, keyof import("@mikro-orm/core").PropertyOptions<any> | ("~options" | "~type" | "$type" | "strictNullable" | "lazyRef")>, keyof import("@mikro-orm/core").PropertyOptions<any> | ("~options" | "~type" | "$type" | "strictNullable" | "lazyRef")>;
     readonly name: import("@mikro-orm/core").StringPropertyOptionsBuilder<string, import("@mikro-orm/core").EmptyOptions>;
-    readonly price: import("@mikro-orm/core").UniversalPropertyOptionsBuilder<number, import("@mikro-orm/core").EmptyOptions, keyof import("@mikro-orm/core").PropertyOptions<any> | ("~options" | "~type" | "$type" | "strictNullable" | "lazyRef")>;
     readonly brand: () => import("@mikro-orm/core").PropertyChain<Brand, import("@mikro-orm/core").EmptyOptions & {
         kind: "m:1";
     }>;
@@ -13,7 +12,6 @@ export declare const ProductSchema: import("@mikro-orm/core").EntitySchemaWithMe
         primary: true;
     }, keyof import("@mikro-orm/core").PropertyOptions<any> | ("~options" | "~type" | "$type" | "strictNullable" | "lazyRef")>, keyof import("@mikro-orm/core").PropertyOptions<any> | ("~options" | "~type" | "$type" | "strictNullable" | "lazyRef")>;
     readonly name: import("@mikro-orm/core").StringPropertyOptionsBuilder<string, import("@mikro-orm/core").EmptyOptions>;
-    readonly price: import("@mikro-orm/core").UniversalPropertyOptionsBuilder<number, import("@mikro-orm/core").EmptyOptions, keyof import("@mikro-orm/core").PropertyOptions<any> | ("~options" | "~type" | "$type" | "strictNullable" | "lazyRef")>;
     readonly brand: () => import("@mikro-orm/core").PropertyChain<Brand, import("@mikro-orm/core").EmptyOptions & {
         kind: "m:1";
     }>;
@@ -22,7 +20,6 @@ export declare const ProductSchema: import("@mikro-orm/core").EntitySchemaWithMe
         primary: true;
     }, keyof import("@mikro-orm/core").PropertyOptions<any> | ("~options" | "~type" | "$type" | "strictNullable" | "lazyRef")>, keyof import("@mikro-orm/core").PropertyOptions<any> | ("~options" | "~type" | "$type" | "strictNullable" | "lazyRef")>;
     readonly name: import("@mikro-orm/core").StringPropertyOptionsBuilder<string, import("@mikro-orm/core").EmptyOptions>;
-    readonly price: import("@mikro-orm/core").UniversalPropertyOptionsBuilder<number, import("@mikro-orm/core").EmptyOptions, keyof import("@mikro-orm/core").PropertyOptions<any> | ("~options" | "~type" | "$type" | "strictNullable" | "lazyRef")>;
     readonly brand: () => import("@mikro-orm/core").PropertyChain<Brand, import("@mikro-orm/core").EmptyOptions & {
         kind: "m:1";
     }>;

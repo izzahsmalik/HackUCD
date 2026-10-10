@@ -1,9 +1,16 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { EntityRepository } from '@mikro-orm/core';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Transaction } from './transaction.entity.js';
 import { TransactionCategory } from './transaction-category.entity.js';
-import type { CreateTransactionCategoryDto, UpdateTransactionCategoryDto } from './dto/transaction-category.dto.js';
+import type {
+  CreateTransactionCategoryDto,
+  UpdateTransactionCategoryDto,
+} from './dto/transaction-category.dto.js';
 
 @Injectable()
 export class TransactionCategoriesService {
@@ -20,18 +27,24 @@ export class TransactionCategoriesService {
 
   async findOne(id: number): Promise<TransactionCategory> {
     const category = await this.categoryRepository.findOne({ id });
-    if (!category) throw new NotFoundException(`Transaction category #${id} not found`);
+    if (!category)
+      throw new NotFoundException(`Transaction category #${id} not found`);
     return category;
   }
 
-  async create(dto: CreateTransactionCategoryDto): Promise<TransactionCategory> {
+  async create(
+    dto: CreateTransactionCategoryDto,
+  ): Promise<TransactionCategory> {
     this.validate(dto);
     const category = this.categoryRepository.create({ name: dto.name });
     await this.categoryRepository.getEntityManager().persist(category).flush();
     return category;
   }
 
-  async update(id: number, dto: UpdateTransactionCategoryDto): Promise<TransactionCategory> {
+  async update(
+    id: number,
+    dto: UpdateTransactionCategoryDto,
+  ): Promise<TransactionCategory> {
     const category = await this.findOne(id);
     this.validate({ name: dto.name ?? category.name });
     this.categoryRepository.assign(category, dto);
@@ -41,7 +54,9 @@ export class TransactionCategoriesService {
 
   async remove(id: number): Promise<void> {
     const category = await this.findOne(id);
-    const transactionCount = await this.transactionRepository.count({ category: id });
+    const transactionCount = await this.transactionRepository.count({
+      category: id,
+    });
     if (transactionCount > 0) {
       throw new BadRequestException(
         `Cannot delete transaction category #${id}: ${transactionCount} transaction(s) still reference it`,

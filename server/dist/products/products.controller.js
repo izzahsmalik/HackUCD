@@ -10,7 +10,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, } from '@nestjs/common';
 import { ProductsService } from './products.service.js';
 let ProductsController = class ProductsController {
     productsService;
@@ -22,6 +22,9 @@ let ProductsController = class ProductsController {
     }
     findOne(id) {
         return this.productsService.findOne(id);
+    }
+    findPrices(id) {
+        return this.productsService.getPriceHistory(id);
     }
     create(dto) {
         return this.productsService.create(dto);
@@ -46,6 +49,13 @@ __decorate([
     __metadata("design:paramtypes", [Number]),
     __metadata("design:returntype", void 0)
 ], ProductsController.prototype, "findOne", null);
+__decorate([
+    Get(':id/prices'),
+    __param(0, Param('id', ParseIntPipe)),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number]),
+    __metadata("design:returntype", void 0)
+], ProductsController.prototype, "findPrices", null);
 __decorate([
     Post(),
     __param(0, Body()),

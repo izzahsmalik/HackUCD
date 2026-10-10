@@ -5,6 +5,8 @@ export interface CreateTransactionDto {
   date: string;
   /** Existing category id, positive integer */
   categoryId: number;
+  /** Existing transaction group id, positive integer */
+  groupId: number;
 }
 
 export type UpdateTransactionDto = Partial<CreateTransactionDto>;

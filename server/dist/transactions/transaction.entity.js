@@ -1,5 +1,6 @@
 import { defineEntity, p } from '@mikro-orm/core';
 import { TransactionCategory } from './transaction-category.entity.js';
+import { TransactionGroup } from './transaction-group.entity.js';
 export const TransactionSchema = defineEntity({
     name: 'Transaction',
     tableName: 'transactions',
@@ -8,6 +9,7 @@ export const TransactionSchema = defineEntity({
         amount: p.integer(),
         date: p.date(),
         category: () => p.manyToOne(TransactionCategory),
+        group: () => p.manyToOne(TransactionGroup),
     },
 });
 export class Transaction extends TransactionSchema.class {

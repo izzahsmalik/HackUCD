@@ -3,6 +3,7 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types.js';
 import { AppModule } from './../src/app.module.js';
+import { LlmModel } from './../src/llm/llm.model.js';
 
 describe('AppController (e2e)', () => {
   let app: INestApplication<App>;
@@ -10,7 +11,11 @@ describe('AppController (e2e)', () => {
   beforeEach(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    })
+      // The LLM provider needs an API key at boot; e2e tests never call it.
+      .overrideProvider(LlmModel)
+      .useValue({ chat: vi.fn(), chatJson: vi.fn(), complete: vi.fn() })
+      .compile();
 
     app = moduleFixture.createNestApplication();
     await app.init();

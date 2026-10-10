@@ -1,10 +1,24 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+} from '@nestjs/common';
 import { TransactionCategoriesService } from './transaction-categories.service.js';
-import type { CreateTransactionCategoryDto, UpdateTransactionCategoryDto } from './dto/transaction-category.dto.js';
+import type {
+  CreateTransactionCategoryDto,
+  UpdateTransactionCategoryDto,
+} from './dto/transaction-category.dto.js';
 
 @Controller('transaction-categories')
 export class TransactionCategoriesController {
-  constructor(private readonly transactionCategoriesService: TransactionCategoriesService) {}
+  constructor(
+    private readonly transactionCategoriesService: TransactionCategoriesService,
+  ) {}
 
   @Get()
   findAll() {
@@ -22,7 +36,10 @@ export class TransactionCategoriesController {
   }
 
   @Patch(':id')
-  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateTransactionCategoryDto) {
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateTransactionCategoryDto,
+  ) {
     return this.transactionCategoriesService.update(id, dto);
   }
 

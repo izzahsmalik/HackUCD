@@ -53,7 +53,10 @@ describe('BrandsController', () => {
   describe('findOne', () => {
     it('returns the brand when it exists', async () => {
       brandRepository.findOne.mockResolvedValue({ id: 1, name: 'Acme' });
-      await expect(controller.findOne(1)).resolves.toEqual({ id: 1, name: 'Acme' });
+      await expect(controller.findOne(1)).resolves.toEqual({
+        id: 1,
+        name: 'Acme',
+      });
     });
 
     it('throws NotFoundException for an unknown id', async () => {
@@ -66,11 +69,15 @@ describe('BrandsController', () => {
     it('persists and returns the new brand', async () => {
       const created = { id: 1, name: 'Acme' };
       brandRepository.create.mockReturnValue(created);
-      await expect(controller.create({ name: 'Acme' })).resolves.toEqual(created);
+      await expect(controller.create({ name: 'Acme' })).resolves.toEqual(
+        created,
+      );
     });
 
     it('rejects an empty name', async () => {
-      await expect(controller.create({ name: '  ' })).rejects.toThrow(BadRequestException);
+      await expect(controller.create({ name: '  ' })).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
@@ -79,19 +86,23 @@ describe('BrandsController', () => {
       const brand = { id: 1, name: 'Acme' };
       brandRepository.findOne.mockResolvedValue(brand);
       await controller.update(1, { name: 'Acme Corp' });
-      expect(brandRepository.assign).toHaveBeenCalledWith(brand, { name: 'Acme Corp' });
+      expect(brandRepository.assign).toHaveBeenCalledWith(brand, {
+        name: 'Acme Corp',
+      });
     });
 
     it('throws NotFoundException for an unknown id', async () => {
       brandRepository.findOne.mockResolvedValue(null);
-      await expect(controller.update(99, { name: 'Acme Corp' })).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        controller.update(99, { name: 'Acme Corp' }),
+      ).rejects.toThrow(NotFoundException);
     });
 
     it('rejects an empty name', async () => {
       brandRepository.findOne.mockResolvedValue({ id: 1, name: 'Acme' });
-      await expect(controller.update(1, { name: ' ' })).rejects.toThrow(BadRequestException);
+      await expect(controller.update(1, { name: ' ' })).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
@@ -105,7 +116,9 @@ describe('BrandsController', () => {
     it('rejects deleting a brand that still has products', async () => {
       brandRepository.findOne.mockResolvedValue({ id: 1, name: 'Acme' });
       productRepository.count.mockResolvedValue(3);
-      await expect(controller.remove(1)).rejects.toThrow('3 product(s) still reference it');
+      await expect(controller.remove(1)).rejects.toThrow(
+        '3 product(s) still reference it',
+      );
       expect(entityManager.remove).not.toHaveBeenCalled();
     });
   });

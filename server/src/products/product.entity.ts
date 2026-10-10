@@ -7,7 +7,6 @@ export const ProductSchema = defineEntity({
   properties: {
     id: p.integer().primary(), // SQLite: INTEGER PK autoincrements
     name: p.string(),
-    price: p.integer(), // cents — never floats
     brand: () => p.manyToOne(Brand), // required m:1; FK column brand_id, FK constraint ON
   },
 });

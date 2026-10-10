@@ -6,6 +6,8 @@ import { AppService } from './app.service.js';
 import { BrandsModule } from './brands/brands.module.js';
 import { ProductsModule } from './products/products.module.js';
 import { TransactionsModule } from './transactions/transactions.module.js';
+import { ActionQueueModule } from './action-queue/action-queue.module.js';
+import { IngestModule } from './ingest/ingest.module.js';
 
 @Module({
   imports: [
@@ -20,6 +22,8 @@ import { TransactionsModule } from './transactions/transactions.module.js';
     BrandsModule,
     ProductsModule,
     TransactionsModule,
+    ActionQueueModule,
+    IngestModule,
   ],
   controllers: [AppController],
   providers: [AppService],

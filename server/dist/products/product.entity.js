@@ -6,7 +6,6 @@ export const ProductSchema = defineEntity({
     properties: {
         id: p.integer().primary(),
         name: p.string(),
-        price: p.integer(),
         brand: () => p.manyToOne(Brand),
     },
 });

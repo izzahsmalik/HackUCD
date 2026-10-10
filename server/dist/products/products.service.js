@@ -10,17 +10,20 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, } from '@nestjs/common';
 import { EntityRepository } from '@mikro-orm/core';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Brand } from '../brands/brand.entity.js';
 import { Product } from './product.entity.js';
+import { ProductPrice } from './product-price.entity.js';
 let ProductsService = class ProductsService {
     productRepository;
     brandRepository;
-    constructor(productRepository, brandRepository) {
+    productPriceRepository;
+    constructor(productRepository, brandRepository, productPriceRepository) {
         this.productRepository = productRepository;
         this.brandRepository = brandRepository;
+        this.productPriceRepository = productPriceRepository;
     }
     findAll() {
         return this.productRepository.findAll({ populate: ['brand'] });
@@ -34,7 +37,7 @@ let ProductsService = class ProductsService {
     async create(dto) {
         this.validate(dto, true);
         const brand = await this.brandOrThrow(dto.brandId);
-        const product = this.productRepository.create({ name: dto.name, price: dto.price, brand });
+        const product = this.productRepository.create({ name: dto.name, brand });
         await this.productRepository.getEntityManager().persist(product).flush();
         return product;
     }
@@ -42,14 +45,11 @@ let ProductsService = class ProductsService {
         const product = await this.findOne(id);
         this.validate({
             name: dto.name ?? product.name,
-            price: dto.price ?? product.price,
             brandId: dto.brandId,
         });
         const data = {};
         if (dto.name !== undefined)
             data.name = dto.name;
-        if (dto.price !== undefined)
-            data.price = dto.price;
         if (dto.brandId !== undefined)
             data.brand = await this.brandOrThrow(dto.brandId);
         this.productRepository.assign(product, data);
@@ -59,6 +59,10 @@ let ProductsService = class ProductsService {
     async remove(id) {
         const product = await this.findOne(id);
         await this.productRepository.getEntityManager().remove(product).flush();
+    }
+    async getPriceHistory(id) {
+        const product = await this.findOne(id);
+        return this.productPriceRepository.find({ product }, { orderBy: { setAt: 'desc' } });
     }
     async brandOrThrow(brandId) {
         const brand = await this.brandRepository.findOne({ id: brandId });
@@ -70,10 +74,8 @@ let ProductsService = class ProductsService {
         if (typeof dto.name !== 'string' || dto.name.trim().length === 0) {
             throw new BadRequestException('name must be a non-empty string');
         }
-        if (!Number.isInteger(dto.price) || dto.price < 0) {
-            throw new BadRequestException('price must be a non-negative integer (cents)');
-        }
-        if ((requireBrandId || dto.brandId !== undefined) && (!Number.isInteger(dto.brandId) || dto.brandId <= 0)) {
+        if ((requireBrandId || dto.brandId !== undefined) &&
+            (!Number.isInteger(dto.brandId) || dto.brandId <= 0)) {
             throw new BadRequestException('brandId must be a positive integer');
         }
     }
@@ -82,7 +84,9 @@ ProductsService = __decorate([
     Injectable(),
     __param(0, InjectRepository(Product)),
     __param(1, InjectRepository(Brand)),
+    __param(2, InjectRepository(ProductPrice)),
     __metadata("design:paramtypes", [EntityRepository,
+        EntityRepository,
         EntityRepository])
 ], ProductsService);
 export { ProductsService };

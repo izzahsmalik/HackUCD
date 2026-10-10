@@ -10,7 +10,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, } from '@nestjs/common';
 import { EntityRepository } from '@mikro-orm/core';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Transaction } from './transaction.entity.js';
@@ -46,7 +46,9 @@ let TransactionCategoriesService = class TransactionCategoriesService {
     }
     async remove(id) {
         const category = await this.findOne(id);
-        const transactionCount = await this.transactionRepository.count({ category: id });
+        const transactionCount = await this.transactionRepository.count({
+            category: id,
+        });
         if (transactionCount > 0) {
             throw new BadRequestException(`Cannot delete transaction category #${id}: ${transactionCount} transaction(s) still reference it`);
         }
