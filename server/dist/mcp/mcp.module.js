@@ -6,13 +6,14 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 };
 import { Module } from '@nestjs/common';
 import { IngestModule } from '../ingest/ingest.module.js';
+import { QueryModule } from '../query/query.module.js';
 import { McpController } from './mcp.controller.js';
 import { McpServerFactory } from './mcp-server.factory.js';
 let McpModule = class McpModule {
 };
 McpModule = __decorate([
     Module({
-        imports: [IngestModule],
+        imports: [IngestModule, QueryModule],
         controllers: [McpController],
         providers: [McpServerFactory],
     })
