@@ -12,6 +12,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { ActionQueueService } from '../action-queue/action-queue.service.js';
 import { IngestService } from '../ingest/ingest.service.js';
+import { OutputsService } from '../outputs/outputs.service.js';
 import { QueryService } from '../query/query.service.js';
 import { QUERY_TOOL_DESCRIPTION, QUERY_TOOL_NAME, } from '../query/query-tool.js';
 const SERVER_NAME = 'hackucd-ingest';
@@ -20,10 +21,12 @@ let McpServerFactory = class McpServerFactory {
     ingestService;
     queryService;
     actionQueueService;
-    constructor(ingestService, queryService, actionQueueService) {
+    outputsService;
+    constructor(ingestService, queryService, actionQueueService, outputsService) {
         this.ingestService = ingestService;
         this.queryService = queryService;
         this.actionQueueService = actionQueueService;
+        this.outputsService = outputsService;
     }
     create() {
         const server = new McpServer({
@@ -96,6 +99,18 @@ let McpServerFactory = class McpServerFactory {
                     .describe('Payload fields the chosen action declares'),
             },
         }, async ({ id, actionId, payload }) => this.wrap(() => this.actionQueueService.resolve(id, actionId, payload)));
+        server.registerTool('get_output_cost', {
+            title: 'Get an output cost',
+            description: 'Get the cost of one output by id: the latest product price for each ' +
+                'dependent product plus the latest output price, broken down and summed.',
+            inputSchema: {
+                outputId: z
+                    .number()
+                    .int()
+                    .positive()
+                    .describe('Output id (see GET /outputs)'),
+            },
+        }, async ({ outputId }) => this.wrap(() => this.outputsService.getCost(outputId)));
         return server;
     }
     registerQueryTool(server) {
@@ -145,7 +160,8 @@ McpServerFactory = __decorate([
     Injectable(),
     __metadata("design:paramtypes", [IngestService,
         QueryService,
-        ActionQueueService])
+        ActionQueueService,
+        OutputsService])
 ], McpServerFactory);
 export { McpServerFactory };
 function textResult(text) {
